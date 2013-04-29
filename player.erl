@@ -11,23 +11,24 @@ play(Pid, Name) -> play(Pid, Name, 0).
 play(Pid, Name, Start_room) ->
 	receive 
 		{ClientPid, move} ->
-			io:format("~p is moving...", [ClientPid]);
+			io:format("~p is moving...", [ClientPid])
 			
-        {Start_room, player_command, {Action}} ->
+        %{Start_room, player_command, {Action}} ->
 		
             % would Action have already been a completely parsed command which
             % we know to be valid, or do we validate whether we can perform
             % the command the user sent? e.g. if user says drop sword,
             % but we don't have a sword, who figures this out, the Room or the
             % Player?
-            {Results} = room:receiveAction(self(), Start_room, {Action},
-            case {Results} of
-                {died} ->
-                    NewPlayerRecord = {Pid, "I'm dead", Start_room};
-                {entered, NewRoom} ->
-                    NewPlayerRecord = {Pid, Name, NewRoom};
-                _ ->
-                    ok
+        %    {Results} = room:receiveAction(self(), Start_room, {Action},
+        %    NewPlayerRecord = case {Results} of
+        %        {died} ->
+        %            {Pid, "I'm dead", Start_room};
+        %        {entered, NewRoom} ->
+        %            {Pid, Name, NewRoom};
+        %        _ ->
+        %            {Pid, Name, Start_room}
+        %    end
 	end,
 	
     % have play take the player record as its argument
