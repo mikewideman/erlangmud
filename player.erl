@@ -7,11 +7,14 @@ start(Name) ->
 	io:format("started the thread: ~p", [Player]).
 
 play(Pid, Name) -> play(Pid, Name, 0).
+
 play(Pid, Name, Start_room) ->
 	receive 
 		{ClientPid, move} ->
-			io:format("~p is moving...", [ClientPid])
-        {Start_room, player_command, {Action} ->
+			io:format("~p is moving...", [ClientPid]);
+			
+        {Start_room, player_command, {Action}} ->
+		
             % would Action have already been a completely parsed command which
             % we know to be valid, or do we validate whether we can perform
             % the command the user sent? e.g. if user says drop sword,
@@ -26,6 +29,7 @@ play(Pid, Name, Start_room) ->
                 _ ->
                     ok
 	end,
+	
     % have play take the player record as its argument
 	play(Pid, Name, Start_room).
 
