@@ -16,6 +16,7 @@
 %%
 %% `north_door', `east_door', `south_door', `west_door': doors to neighboring
 %% rooms in the cardinal direction of their respective field names.
+%% @end
 -record(room,
     { id            :: reference()
     , description   :: string()
