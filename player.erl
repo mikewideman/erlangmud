@@ -1,5 +1,12 @@
+%%%=============================================================================
+%%% @doc A Player Character (PC).
+%%% PCs are the user's avatar in the game. PCs are controlled by the user.
+%%% @end
+%%%=============================================================================
+
 -module(player).
 -export([start/1, play/2, status/0]).
+-include("character.hrl").
 
 start(Name) -> 
 	Player = spawn(player, play, [self(), Name]),
