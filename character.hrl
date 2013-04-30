@@ -20,11 +20,11 @@
 %% processes must speak to the room to perform actions.
 %% @end
 -record(character,
-    { id :: reference()
-    , name :: string()
-    , health :: non_neg_integer()
-    , inventory = [] :: list()
-    , room :: pid()
+    { id                :: reference()
+    , name              :: string()
+    , health            :: non_neg_integer()
+    , inventory = []    :: list()
+    , room              :: pid()
     }).
 
 -spec make_character(string(), non_neg_integer(), pid()) -> #character{}.
