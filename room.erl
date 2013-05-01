@@ -41,16 +41,31 @@ targetAction(RoomPid, Verb, DirectObject, IndirectObject) ->
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	receive
 		{Sender, targetAction, Action} -> 
-			Sender ! s_targetAction(Action, Room#room.things),
+			Sender ! s_targetAction(Sender, Action, Room#room.things),
 			main(Room)
 	end.
 
-s_targetAction(HRAction, ThingList) ->
+s_targetAction(Sender, HRAction, ThingList) ->
+	%convet the text actions to pids
 	Action = hrActionToPidAction(HRAction, ThingList),
+
 	case Action of
 		{error, Reason} -> {error, Reason};
-		{action, _V, DirectObject, _} -> thing:handleAction(DirectObject, Action)
+		{action, _V, DirectObject, _} -> 
+			%if no problems finding the pids, forward it
+			Result = thing:handleAction(DirectObject, Action),
+			%propagate if okay. I don't know yet how Thing will say it was okay, so I guessed.
+			case Result of 
+				{ok, _} ->
+					doPropagateEvent(Sender, Action, ThingList);
+				_	-> Result
+			end
 	end.
+%turn the action into an event and tell everyone!
+doPropagateEvent(Sender, Action, ThingList) ->
+	Event = {event, Sender, Action},
+	ESend = fun(ThingPid) -> thing:receiveEvent(ThingPid, Event) end,
+	lists:foreach(ESend, ThingList).
 %HELPERS
 
 %takes an action with human readable strings for objects and converts them to Pids.
