@@ -10,7 +10,7 @@
 %%%=============================================================================
 
 -module(room).
--export([start/1, targetAction/2, targetAction/4, look/1]).
+-export([start/1, targetAction/2, targetAction/4, look/1, broadcast/2]).
 -include("room.hrl").
 
 -spec start(string()) -> pid().
@@ -41,6 +41,11 @@ targetAction(RoomPid, Verb, DirectObject, IndirectObject) ->
 look(RoomPid) ->
 	RoomPid ! {self(), look},
 	receive_response().
+%Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
+%I'm using the event format {event, BY, VERB, ON, WITH}
+%we should handel hr message text somewhere else
+broadcast(RoomPid, Event) ->
+	RoomPid ! {self(), broadcast, Event}.
 
 %wait for an incoming message and return it as a return value
 receive_response() ->
@@ -56,7 +61,9 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 			main(Room);
 		{Sender, look}		->
 			Sender ! Room#room.things,
-			main(Room)
+			main(Room);
+		{_, broadcast, Event} ->
+			doPropagateEvent(Event, Room#room.things), main(Room)
 	after 0 -> main(Room)
 	end.
 
@@ -72,13 +79,15 @@ s_targetAction(Sender, HRAction, ThingList) ->
 			%propagate if okay. I don't know yet how Thing will say it was okay, so I guessed.
 			case Result of 
 				{ok, _} ->
-					doPropagateEvent(Sender, Action, ThingList);
+					doPropagateEvent(makeEvent(Sender, Action), ThingList);
 				_	-> Result
 			end
 	end.
+makeEvent(Sender, Action) ->
+	{action, Verb, DirectObject, IndirectObject} = Action,
+	{event, Sender, Verb, DirectObject, IndirectObject}.
 %turn the action into an event and tell everyone!
-doPropagateEvent(Sender, Action, ThingList) ->
-	Event = {event, Sender, Action},
+doPropagateEvent(Event, ThingList) ->
 	ESend = fun(ThingPid) -> thing:receiveEvent(ThingPid, Event) end,
 	lists:foreach(ESend, ThingList).
 %HELPERS
