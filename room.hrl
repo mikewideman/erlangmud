@@ -10,6 +10,7 @@
 %% @doc A room's state.
 %% `id': the unique identifier for the room.
 %%
+%%  `name`: a human-readabe short name for the room
 %% `description': a human-readable description of the room.
 %%
 %% `things': a list of the "Things" (i.e. PCs, NPCs, and items) in the room.
