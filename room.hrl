@@ -18,11 +18,45 @@
 %% rooms in the cardinal direction of their respective field names.
 %% @end
 -record(room,
-    { id            :: reference()
-    , description   :: string()
-    , things = []   :: list()
-    , north_door    :: pid() | none()
-    , east_door     :: pid() | none()
-    , south_door    :: pid() | none()
-    , west_door     :: pid() | none()
+    { id                    :: reference()
+    , description           :: string()
+    , things = []           :: list()
+    , north_door = none     :: pid() | none
+    , east_door = none      :: pid() | none
+    , south_door = none     :: pid() | none
+    , west_door = none      :: pid() | none
     }).
+
+-spec make_room(string()) -> #room{}.
+%% @doc Create a new room with no linked rooms. Returns the created room.
+make_room(Description) ->
+    #room
+        { id = make_ref()
+        , description = Description
+        }.
+
+% -spec link_rooms_north_south(#room{}, #room{}) -> {#room{}, #room{}}.
+% %% @doc Link two rooms with a north-south door. The first room will be the
+% %% northern room. The second will be the southern room. Returns the modified
+% %% rooms.
+% link_rooms_north_south(Room1, Room2) ->
+    % { Room1#room
+        % { south_door = %% @todo get pid for link
+        % }
+    % , Room2#room
+        % { north_door = %% @todo get pid for link
+        % }
+    % }.
+
+% -spec link_rooms_east_west(#room{}, #room{}) -> {#room{}, #room{}}.
+% %% @doc Link two rooms with a east-west door. The first room will be the
+% %% eastern room. The second will be the western room. Returns the modified
+% %% rooms.
+% link_rooms_east_west(Room1, Room2) ->
+    % { Room1#room
+        % { west_door = %% @todo get pid for link
+        % }
+    % , Room2#room
+        % { east_door = %% @todo get pid for link
+        % }
+    % }.
