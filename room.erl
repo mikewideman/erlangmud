@@ -15,6 +15,7 @@
 
 -spec start(string()) -> pid().
 %% @doc Spawn a new room process, initializing it with a given Description.
+%% Returns the room pid.
 %% @todo what else will this function do?
 %% @end
 start(Description) ->
