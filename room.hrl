@@ -20,11 +20,11 @@
 -record(room,
     { id                    :: reference()
     , description           :: string()
-    , things = []           :: list()           % @todo item type
-    , north_door = none     :: pid() | none     % @todo room types?
-    , east_door = none      :: pid() | none
-    , south_door = none     :: pid() | none
-    , west_door = none      :: pid() | none
+    , things = []           :: list()               % @todo item type
+    , north_door = none     :: pid() | 'none'       % @todo room types?
+    , east_door = none      :: pid() | 'none'
+    , south_door = none     :: pid() | 'none'
+    , west_door = none      :: pid() | 'none'
     }).
 
 -spec make_room(string()) -> #room{}.
