@@ -30,6 +30,7 @@
 -spec make_room(string()) -> #room{}.
 %% @doc Create a new room with no linked rooms and nothing in it. Returns the
 %% created room.
+%% @end
 make_room(Description) ->
     #room
         { id = make_ref()
@@ -40,6 +41,7 @@ make_room(Description) ->
 % %% @doc Link two rooms with a north-south door. The first room will be the
 % %% northern room. The second will be the southern room. Returns the modified
 % %% rooms.
+% %% @end
 % link_rooms_north_south(Room1, Room2) ->
     % { Room1#room
         % { south_door = %% @todo get pid for link
@@ -53,6 +55,7 @@ make_room(Description) ->
 % %% @doc Link two rooms with a east-west door. The first room will be the
 % %% eastern room. The second will be the western room. Returns the modified
 % %% rooms.
+% %% @end
 % link_rooms_east_west(Room1, Room2) ->
     % { Room1#room
         % { west_door = %% @todo get pid for link

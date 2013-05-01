@@ -29,6 +29,7 @@
 
 -spec make_character(string(), non_neg_integer(), pid()) -> #character{}.
 %% @doc Creates a new character with no inventory. Returns the new character.
+%% @end
 make_character(Name, Health, Room) ->
     #character
         { id = make_ref()
