@@ -12,6 +12,7 @@
 -module(room).
 -export([start/1, targetAction/3, targetAction/5, look/1, broadcast/2, targetInput/3]).
 -include("room.hrl").
+-include("action.hrl").
 
 -spec start(string()) -> pid().
 %% @doc Spawn a new room process, initializing it with a given Description.
@@ -25,6 +26,8 @@ start(Description) ->
 
 %functions
 
+%% @todo change to fit action() type
+%%-spec targetAction(pid(), boolean(), action()) -> any().
 %forward an action to the direct object. On success, an event is propagated. The result from the thing is returned.
 %IsHR indiracets whether the objects are strings (human readable) or pids
 %the objects are by human-readable name at this point, but will be converted to PIDs here
