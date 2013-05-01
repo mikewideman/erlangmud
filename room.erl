@@ -10,4 +10,26 @@
 %%%=============================================================================
 
 -module(room).
+-export([start/1]).
 -include("room.hrl").
+
+-spec start(string()) -> pid().
+%% @doc Start a new room process, initializing it with a given Description.
+%% @todo what else will this function do?
+%% @end
+start(Description) ->
+    Room = make_room(Description),
+    % @todo link rooms, add content to rooms
+    spawn(fun() -> main(Room) end).
+
+-spec main(#room{}) -> no_return().
+%% @doc The main function of a room process. Loops forever.
+%% @end
+main(Room) ->
+    NewRoom = receive
+        _ -> Room
+    after 0 ->
+        Room
+    end,
+    main(NewRoom).
+    
