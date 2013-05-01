@@ -68,7 +68,7 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 			Sender ! s_targetAction(Sender, IsHR, Action, Room#room.things),
 			main(Room);
 		{Sender, look}		->
-			Sender ! Room#room.things,
+			Sender ! Room#room.things, % @todo turn into game event or something
 			main(Room);
 		{_, broadcast, Event} ->
 			doPropagateEvent(Event, Room#room.things), main(Room);
@@ -106,6 +106,7 @@ makeEvent(Sender, Action) ->
 doPropagateEvent(Event, ThingList) ->
 	ESend = fun(ThingPid) -> thing:receiveEvent(ThingPid, Event) end,
 	lists:foreach(ESend, ThingList).
+    % @todo we could use the lists:map approach our professor used in class today
 %HELPERS
 
 %takes an action with human readable strings for objects and converts them to Pids.
