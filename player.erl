@@ -47,12 +47,12 @@ status() -> self().
 
 %%% Just a different approach here, don't worry
 
--spec start(string(), non_neg_integer(), pid()) -> pid().
+-spec start(string(), non_neg_integer(), pos_integer(), pid()) -> pid().
 %% @doc Spawn a new player process, initializing it with the given name, health,
 %% and room (in which it is located). Returns the player pid.
 %% @end
-start(Name, Health, Room) ->
-    Player = make_character(Name, Health, Room),
+start(Name, Health, Attack, Room) ->
+    Player = make_character(Name, Health, Attack, Room),
     spawn(fun() -> main(Player) end).
 
 -spec main(#character) -> no_return().
