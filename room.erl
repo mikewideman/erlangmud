@@ -23,9 +23,6 @@ start(Description) ->
     % @todo link rooms, add content to rooms
     spawn(fun() -> main(Room) end).
 
--spec main(#room{}) -> no_return().
-%% @doc The main function of a room process. Loops forever.
-%% @end
 %functions
 
 %forward an action to the direct object. On success, an event is propagated. The result from the thing is returned.
@@ -59,7 +56,9 @@ receive_response() ->
 		timeout
 	end.
 
-
+-spec main(#room{}) -> no_return().
+%% @doc The main function of a room process. Loops forever.
+%% @end
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	receive
 		{Sender, targetAction, IsHR, Action} -> 
