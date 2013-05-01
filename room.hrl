@@ -28,7 +28,8 @@
     }).
 
 -spec make_room(string()) -> #room{}.
-%% @doc Create a new room with no linked rooms. Returns the created room.
+%% @doc Create a new room with no linked rooms and nothing in it. Returns the
+%% created room.
 make_room(Description) ->
     #room
         { id = make_ref()
