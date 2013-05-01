@@ -23,17 +23,20 @@
     { id                :: reference()
     , name              :: string()
     , health = 1        :: non_neg_integer()
+    , attack = 1        :: pos_integer()
     , inventory = []    :: list()   % @todo: define item type
     , room              :: pid()    % @todo: define a room type?
     }).
 
--spec make_character(string(), non_neg_integer(), pid()) -> #character{}.
+-spec make_character(string(), non_neg_integer(), pos_integer(), pid()) -> 
+    #character{}.
 %% @doc Create a new character with no inventory. Returns the new character.
 %% @end
-make_character(Name, Health, Room) ->
+make_character(Name, Health, Attack, Room) ->
     #character
         { id = make_ref()
         , name = Name
         , health = Health
+        , attack = Attack
         , room = Room
         }.
