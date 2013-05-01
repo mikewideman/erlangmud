@@ -25,7 +25,7 @@ start(Description) ->
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
 %% @end
-main(Room) ->
+main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
     NewRoom = receive
         _ -> Room
     after 0 ->
