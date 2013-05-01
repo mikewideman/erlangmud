@@ -14,7 +14,7 @@
 -include("room.hrl").
 
 -spec start(string()) -> pid().
-%% @doc Start a new room process, initializing it with a given Description.
+%% @doc Spawn a new room process, initializing it with a given Description.
 %% @todo what else will this function do?
 %% @end
 start(Description) ->
