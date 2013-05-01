@@ -23,8 +23,8 @@
     { id                :: reference()
     , name              :: string()
     , health            :: non_neg_integer()
-    , inventory = []    :: list()
-    , room              :: pid()
+    , inventory = []    :: list()   % @todo: define item type
+    , room              :: pid()    % @todo: define a room type?
     }).
 
 -spec make_character(string(), non_neg_integer(), pid()) -> #character{}.
