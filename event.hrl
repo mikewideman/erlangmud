@@ -17,3 +17,5 @@
 
 %% @todo define participles (present and past) e.g. attacking, attacked
 %% @todo consider active vs passive voice
+%% @doc see [http://en.wikipedia.org/wiki/Participle]
+%% @end
