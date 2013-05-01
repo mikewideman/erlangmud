@@ -10,7 +10,7 @@
 %%%=============================================================================
 
 -module(room).
--export([start/1, targetAction/2, targetAction/4]).
+-export([start/1, targetAction/2, targetAction/4, look/1]).
 -include("room.hrl").
 
 -spec start(string()) -> pid().
@@ -32,17 +32,32 @@ start(Description) ->
 %the objects are by human-readable name at this point, but will be converted to PIDs here
 %should you wish to omit the indirect object, use the atom none
 targetAction(RoomPid, {action, Verb, DirectObject, IndirectObject}) -> 
-	RoomPid ! {self(), targetAction, {action, Verb, DirectObject, IndirectObject}}.
+	RoomPid ! {self(), targetAction, {action, Verb, DirectObject, IndirectObject}},
+	receive_response().
 targetAction(RoomPid, Verb, DirectObject, IndirectObject) ->
 	targetAction(RoomPid, {action, Verb, DirectObject, IndirectObject}).
 
+%get a list of pids of all the things in the room
+look(RoomPid) ->
+	RoomPid ! {self(), look},
+	receive_response().
+
+%wait for an incoming message and return it as a return value
+receive_response() ->
+	receive
+		Any -> Any
+	end.
 
 
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	receive
 		{Sender, targetAction, Action} -> 
 			Sender ! s_targetAction(Sender, Action, Room#room.things),
+			main(Room);
+		{Sender, look}		->
+			Sender ! Room#room.things,
 			main(Room)
+	after 0 -> main(Room)
 	end.
 
 s_targetAction(Sender, HRAction, ThingList) ->
