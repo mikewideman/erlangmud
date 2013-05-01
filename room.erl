@@ -10,7 +10,7 @@
 %%%=============================================================================
 
 -module(room).
--export([start/1, targetAction/2, targetAction/4, look/1, broadcast/2]).
+-export([start/1, targetAction/3, targetAction/5, look/1, broadcast/2, targetInput/3]).
 -include("room.hrl").
 
 -spec start(string()) -> pid().
@@ -29,13 +29,17 @@ start(Description) ->
 %functions
 
 %forward an action to the direct object. On success, an event is propagated. The result from the thing is returned.
+%IsHR indiracets whether the objects are strings (human readable) or pids
 %the objects are by human-readable name at this point, but will be converted to PIDs here
 %should you wish to omit the indirect object, use the atom none
-targetAction(RoomPid, {action, Verb, DirectObject, IndirectObject}) -> 
-	RoomPid ! {self(), targetAction, {action, Verb, DirectObject, IndirectObject}},
+targetAction(RoomPid, IsHR, {action, Verb, DirectObject, IndirectObject}) -> 
+	RoomPid ! {self(), IsHR, targetAction, {action, Verb, DirectObject, IndirectObject}},
 	receive_response().
-targetAction(RoomPid, Verb, DirectObject, IndirectObject) ->
-	targetAction(RoomPid, {action, Verb, DirectObject, IndirectObject}).
+targetAction(RoomPid, IsHR, Verb, DirectObject, IndirectObject) ->
+	targetAction(RoomPid, IsHR, {action, Verb, DirectObject, IndirectObject}).
+targetInput(RoomPid, PlayerPid, {input, Verb, DirectObject, IndirectObject}) ->
+	RoomPid ! {self(), targetInput, PlayerPid, {input, Verb, DirectObject, IndirectObject}},
+	receive_response().
 
 %get a list of pids of all the things in the room
 look(RoomPid) ->
@@ -51,26 +55,33 @@ broadcast(RoomPid, Event) ->
 receive_response() ->
 	receive
 		Any -> Any
+	after 0 ->
+		timeout
 	end.
 
 
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	receive
-		{Sender, targetAction, Action} -> 
-			Sender ! s_targetAction(Sender, Action, Room#room.things),
+		{Sender, targetAction, IsHR, Action} -> 
+			Sender ! s_targetAction(Sender, IsHR, Action, Room#room.things),
 			main(Room);
 		{Sender, look}		->
 			Sender ! Room#room.things,
 			main(Room);
 		{_, broadcast, Event} ->
-			doPropagateEvent(Event, Room#room.things), main(Room)
+			doPropagateEvent(Event, Room#room.things), main(Room);
+		{Sender, targetInput, PlayerPid, Input} ->
+			Sender ! s_targetInput(PlayerPid, Input, Room#room.things),
+			main(Room)
 	after 0 -> main(Room)
 	end.
 
-s_targetAction(Sender, HRAction, ThingList) ->
-	%convet the text actions to pids
-	Action = hrActionToPidAction(HRAction, ThingList),
-
+s_targetAction(Sender, IsHR, InAction, ThingList) ->
+	%convet the text actions to pids if not IsHr
+ Action =	if 
+		IsHR -> hrActionToPidAction(InAction, ThingList);
+		true -> InAction
+	end,
 	case Action of
 		{error, Reason} -> {error, Reason};
 		{action, _V, DirectObject, _} -> 
@@ -83,6 +94,9 @@ s_targetAction(Sender, HRAction, ThingList) ->
 				_	-> Result
 			end
 	end.
+s_targetInput(Player, HRAction, ThingList) ->
+	Action = hrActionToPidAction(HRAction, ThingList),
+	player:receiveInput(Player, Action).
 makeEvent(Sender, Action) ->
 	{action, Verb, DirectObject, IndirectObject} = Action,
 	{event, Sender, Verb, DirectObject, IndirectObject}.
