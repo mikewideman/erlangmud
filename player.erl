@@ -56,7 +56,7 @@ start(Name, Health, Room) ->
     spawn(fun() -> main(Player) end).
 
 -spec main(#character) -> no_return().
-%% @doc The main function of a player, returns nothing.
+%% @doc The main function of a player. Loops forever.
 %% @end
 main(Player) ->
     NewPlayer = receive
