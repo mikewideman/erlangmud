@@ -22,7 +22,7 @@
 -record(character,
     { id                :: reference()
     , name              :: string()
-    , health            :: non_neg_integer()
+    , health = 1        :: non_neg_integer()
     , inventory = []    :: list()   % @todo: define item type
     , room              :: pid()    % @todo: define a room type?
     }).
