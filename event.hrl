@@ -14,3 +14,6 @@
 %%% they occur and the concerned parties can be notified of what occurred.
 %%% @end
 %%%=============================================================================
+
+%% @todo define participles (present and past) e.g. attacking, attacked
+%% @todo consider active vs passive voice
