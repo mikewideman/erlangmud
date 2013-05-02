@@ -19,6 +19,6 @@
     | verb()
     %% @todo define more participles
     .
--type event :: {Verb :: participle(), Subject :: pid(), DirectObject :: pid()} | {Verb :: participle(), Subject :: pid(), DirectObject :: pid(), Text ::: string()}.
+-type event :: {Verb :: participle(), Subject :: pid()}|  {Verb :: participle(), Subject :: pid(), DirectObject :: pid()} | {Verb :: participle(), Subject :: pid(), DirectObject :: pid(), Text ::: string()}.
 %% participle() is a type which correlates to a verb() in action.hrl, but 
 %% is the past version of it, e.g. attack -> attacked.
