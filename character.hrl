@@ -27,6 +27,11 @@
     , inventory = []    :: list()   % @todo: define item type
     , room              :: pid()    % @todo: define a room type?
     }).
+    
+-type character_t() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
+%% character() is a type which includes a character process and all of its
+%% record data which will not change, which is useful for avoiding unnecessary
+%% queries to other processes
 
 -spec make_character(string(), non_neg_integer(), pos_integer(), pid()) -> 
     #character{}.
@@ -40,9 +45,3 @@ make_character(Name, Health, Attack, Room) ->
         , attack = Attack
         , room = Room
         }.
-
-% %% @todo consider whether we want a record or a type for this
--type character() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
-%% character() is a type which includes a character process and all of its
-%% record data which will not change, which is useful for avoiding unnecessary
-%% queries to other processes

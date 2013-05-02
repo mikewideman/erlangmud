@@ -21,7 +21,7 @@
 -record(room,
     { id                    :: reference()
     , description           :: string()
-    , things = []           :: list(character())               
+    , things = []           :: list(character_t())               
     %, things = []          :: list(character() | item()) % @todo item type
     , north_door = none     :: pid() | 'none'       % @todo room types?
     , east_door = none      :: pid() | 'none'
@@ -29,8 +29,8 @@
     , west_door = none      :: pid() | 'none'
     }).
     
--type room() :: {Proc :: pid(), Id :: reference(), Description :: string()}.
-%% room() is a type which includes a room process, its unique identifier, and
+-type room_t() :: {Proc :: pid(), Id :: reference(), Description :: string()}.
+%% room_t() is a type which includes a room process, its unique identifier, and
 %% its human readable description, the latter two of which are immutable in its
 %% state, which helps to prevent unnecessary query messages.
 
