@@ -61,9 +61,13 @@ start(Name, Health, Attack, Room) ->
 main(Player) ->
     NewPlayer = receive
     %% @todo respond to events
-        _ ->
+        {attacked, AttackerName, DamageTaken} ->
             %% @todo send actions
-            Player
+            Player;
+        {entered, {RoomPid, RoomId, RoomDescription}} -> % i.e. a room_t()
+            Player#player
+                { room = {RoomPid, RoomId, RoomDescription}
+                }
     after 0 ->
         Player
     end,
