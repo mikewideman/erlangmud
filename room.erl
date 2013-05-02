@@ -35,7 +35,7 @@ start(Description) ->
 targetAction({RoomPid, _ , _}, Action) -> 
 	RoomPid ! {self(), targetAction, Action},
 	receive_response().
--spec targetInput(room_type(), hr_action()) -> {'ok' | 'error', atom()}.
+-spec targetInput(room_type(), hr_input()) -> {'ok' | 'error', atom()}.
 targetInput({RoomPid, _ , _}, Action) ->
 	RoomPid ! {self(), targetInput, Action},
 	receive_response().
@@ -99,11 +99,22 @@ s_targetAction(Room, Action) ->
 			false		-> {error, {notInRoom, directObject}}
 		end %end search for DI
 	end.
-s_targetInput(Room, Input) ->
-	{Verb, SubjectString, DObjectString} = Input,
-	Subject = hrThingToThing(Room, SubjectString),
-	DObject = hrThingToThing(Room, DObjectString),
 
+%Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
+%(IE it converts Input to Action)
+%Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
+%sends it to person in the form of action()
+s_targetInput(Room, Input) ->
+	{Verb, Subject, DObjectString} = Input,
+	DObject = hrThingToThing(Room, DObjectString),
+		case DObject of
+			{error, Reason} -> {error, {Reason, directObject}};
+			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
+		end;
+
+%%%HELPER%%%
+propagateEvent(Room, Event) ->
+	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).
 %get a thing in the room by its name. 
 %possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 hrThingToThing(Room, ThingString) ->
@@ -120,6 +131,3 @@ hrThingToThing(Room, ThingString) ->
 	end.
 
 
-%%%HELPER%%%
-propagateEvent(Room, Event) ->
-	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).
