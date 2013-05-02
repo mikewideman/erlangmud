@@ -10,7 +10,7 @@
 %%%=============================================================================
 
 -module(room).
--export([start/1, targetAction/2, look/1, targetInput/2]).
+-export([start/1, targetAction/2, look/1, targetInput/2, broadcast/2, addThing/2]).
 -include("room.hrl").
 -include("action.hrl").
 
@@ -25,7 +25,7 @@ start(Description) ->
     spawn(fun() -> main(Room) end).
 
 %functions
-
+2
 %% @todo change to fit action() type
 %%-spec targetAction(pid(), boolean(), action()) -> any().
 
@@ -57,7 +57,14 @@ look(Room_Proc) ->
 broadcast(Room_Proc, Event) ->
 	Room_Proc#room_proc.pid ! {self(), broadcast, Event}.
 
+%add a thing to the room (enter it, spawn it, whatever you want to call it). 
+%an event will be propagated
+-spec addThing(#room_proc{}, thing_type()) -> any().
+addThing(Room_Proc, Thing) ->
+	Room_Proc#room_proc.pid ! {self(), addThing, Thing}.
+
 %wait for an incoming message and return it as a return value
+%TODO: maybe check that it was the response we were expecting?
 receive_response() ->
 	receive
 		Any -> Any
@@ -82,7 +89,9 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 			main(Room);
 		{Sender, targetInput, Input} ->
 			Sender ! s_targetInput(Room, Input),
-			main(Room)
+			main(Room);
+		{_, addThing, Thing} ->
+			main(s_addThing(Room, Thing))
 	after 0 -> main(Room)
 	end.
 
@@ -120,7 +129,11 @@ s_targetInput(Room, Input) ->
             %% what is this person module?
 			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
 		end;
-
+-spec(#room_proc{}, thing_type()) -> #room_proc{}.
+addThing(Room, Thing) -> 
+	NewRoom = Room#room_proc{things=[Thing | AllThings]}
+	propagateEvent(Room, {enter, Thing}),
+	NewRoom.
 %%%HELPER%%%
 propagateEvent(Room, Event) ->
 	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).
