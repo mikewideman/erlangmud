@@ -28,6 +28,11 @@
     , south_door = none     :: pid() | 'none'
     , west_door = none      :: pid() | 'none'
     }).
+    
+-type room() :: {Proc :: pid(), Id :: reference(), Description :: string()}.
+%% room() is a type which includes a room process, its unique identifier, and
+%% its human readable description, the latter two of which are immutable in its
+%% state, which helps to prevent unnecessary query messages.
 
 -spec make_room(string()) -> #room{}.
 %% @doc Create a new room with no linked rooms and nothing in it. Returns the
