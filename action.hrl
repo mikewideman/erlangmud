@@ -11,6 +11,8 @@
 %%% @end
 %%%=============================================================================
 
+-include("character.hrl").
+
 -type verb() ::
       'attack'
     | 'enter'
@@ -19,6 +21,20 @@
 %% verb() is an atom which is recognized as a valid verb in a command sentence
 %% issued by the user. In general, verbs are the valid "kinds" of actions.
 
--type action() :: {Verb :: verb(), Subject :: pid(), Object :: pid()}.
-%% action() is a sentence, which contains a verb, a subject, and an object.
-%% @todo consider defining a type for subjects and objects.
+% -type action() :: {Verb :: verb(), Subject :: pid(), Object :: pid()}.
+% %% action() is a sentence, which contains a verb, a subject, and an object.
+% %% @todo consider defining a type for subjects and objects.
+
+%% @doc The formal action structure. Represented as the parts of a sentence
+%% which indicate an action, e.g. "attack skeleton".
+%% `verb': the verb (type of action) of the sentence.
+%%
+%% `subject': the subject (the performer of the action) of the setence.
+%%
+%% `object': the object (the target of the action) of the sentence. i.e. the
+%% direct object of the sentence.
+-record(action,
+    { verb                  :: verb()
+    , subject               :: #character_proc{}
+    , object                :: #character_proc{}    %% @todo allow for item_procs
+    }).
