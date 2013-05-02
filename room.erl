@@ -35,9 +35,14 @@ start(Description) ->
 targetAction({RoomPid, _ , _}, Action) -> 
 	RoomPid ! {self(), targetAction, Action},
 	receive_response().
+%Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
+%(IE it converts Input to Action)
+%Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
+%sends it to person in the form of action()
+%returns the result from person OR {error, {why, who}}
 -spec targetInput(room_type(), hr_input()) -> {'ok' | 'error', atom()}.
-targetInput({RoomPid, _ , _}, Action) ->
-	RoomPid ! {self(), targetInput, Action},
+targetInput({RoomPid, _ , _}, Input) ->
+	RoomPid ! {self(), targetInput, Input},
 	receive_response().
 
 %get a list of all the things in the room
@@ -104,6 +109,7 @@ s_targetAction(Room, Action) ->
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %sends it to person in the form of action()
+%returns the result from person OR {error, {why, who}}
 s_targetInput(Room, Input) ->
 	{Verb, Subject, DObjectString} = Input,
 	DObject = hrThingToThing(Room, DObjectString),
