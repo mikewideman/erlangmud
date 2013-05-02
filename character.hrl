@@ -35,7 +35,7 @@
 %% record data which will not change, which is useful for avoiding unnecessary
 %% queries to other processes
 
--spec make_character(string(), non_neg_integer(), pos_integer(), pid()) -> 
+-spec make_character(string(), non_neg_integer(), pos_integer(), room_t()) -> 
     #character{}.
 %% @doc Create a new character with no inventory. Returns the new character.
 %% @end
