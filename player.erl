@@ -60,31 +60,40 @@ start(Name, Health, Attack, Room) ->
 %% @doc The main function of a player. Loops forever.
 %% @end
 main(Player) ->
+    {CurrRoomPid, _CurrRoomId, _CurrRoomDesc} = Player#character.room,
     NewPlayer = receive
     %% @todo respond to events
         {attacked, AttackerName, DamageTaken} ->
-            %% @todo send actions
+            % notified of attacked event
+            %% @todo
             Player;
 
-        {entered, {RoomPid, RoomId, RoomDescription}} -> % i.e. a room_t()
-            Player#player
+        {entered, NewRoom} when is_record(NewRoom, room_proc) ->
+            % notified of entered event
+            Player#character
                 {
-                    room = {RoomPid, RoomId, RoomDescription}
+                    room = NewRoom
                 };
 
-        {attack, self(), TargetPid} ->
+        {attack, self(), Target} when is_record(Target, character_proc) -> %% @todo generalize for things when ready
+            % got a command to perfom attack action
             response =
-                Room:targetAction(Player#character.room, {attack, self(), targetPid}),
+                Room:targetAction(CurrRoomPid, {attack, self(), Target#room_proc.pid}),
+            %% @todo
             Player;
 
-        {enter, self(), RoomPid} ->
+        {enter, self(), TargetRoom} when is_record(TargetRoom, room_proc) ->
+            % got a command to perform enter action
             response =
-                Room:targetAction(Player#character.room, {enter, self(), RoomPid}),
+                Room:targetAction(CurrRoomPid, {enter, self(), TargetRoom#room_proc.pid}),
+            %% @todo
             Player;
 
-        {look} ->
+        {look, _Subject, _Object} ->
+            % got a command to perform look action
             response =
-                Room:lookAction(Player#character.room),
+                Room:lookAction(CurrRoomPid),
+            %% @todo
             Player
 
     after 0 ->
