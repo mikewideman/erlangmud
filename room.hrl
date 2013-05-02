@@ -6,6 +6,7 @@
 %%% @end
 %%%=============================================================================
 
+-include("room.hrl").
 
 %% @doc A room's state.
 %% `id': the unique identifier for the room.

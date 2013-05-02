@@ -4,6 +4,8 @@
 %%% @end
 %%%=============================================================================
 
+-include("room.hrl").
+
 %% @doc A character's state.
 %% `id': the unique identifier for the character.
 %%
@@ -24,8 +26,8 @@
     , name              :: string()
     , health = 1        :: non_neg_integer()
     , attack = 1        :: pos_integer()
-    , inventory = []    :: list()   % @todo: define item type
-    , room              :: pid()    % @todo: define a room type?
+    , inventory = []    :: list()               % @todo: define item type
+    , room              :: room_t()
     }).
     
 -type character_t() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
