@@ -49,15 +49,28 @@
     , name              :: string()
     }).
 
--spec make_character(string(), non_neg_integer(), pos_integer(), room_t()) -> 
+-spec make_character( string()
+                    , non_neg_integer() | 'default'
+                    , pos_integer() | 'default'
+                    , room_t()
+                    ) -> 
     #character{}.
-%% @doc Create a new character with no inventory. Returns the new character.
+%% @doc Create a new character with no inventory. If the default values for
+%% health or attack are desired, use the atom 'default' for their arguments.
+%% Returns the new character.
 %% @end
 make_character(Name, Health, Attack, Room) ->
-    #character
-        { id = make_ref()
-        , name = Name
-        , health = Health
-        , attack = Attack
-        , room = Room
-        }.
+    Id = make_ref(),
+    if Health == default andalso Attack == default ->
+        #character{id = Id, room = Room};
+    if Health =/= default and Attack == default ->
+        #character{id = Id, health = Health, room = Room};
+    if Health == default and Attack =/= default ->
+        #character{id = Id, attack = Attack, room = Room};
+    if Health =/= default and Attack =/= default ->
+        #character  { id = Id
+                    , name = Name
+                    , health = Health
+                    , attack = Attack
+                    , room = Room
+                    }.
