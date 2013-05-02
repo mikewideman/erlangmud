@@ -19,3 +19,11 @@
 %% @todo consider active vs passive voice
 %% @doc see [http://en.wikipedia.org/wiki/Participle]
 %% @end
+
+-type participle() ::
+      'attacked'
+    | 'entered'
+    %% @todo define more participles
+    .
+%% participle() is a type which correlates to a verb() in action.hrl, but 
+%% is the past version of it, e.g. attack -> attacked.
