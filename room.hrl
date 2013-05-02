@@ -22,7 +22,7 @@
 -record(room,
     { id                    :: reference()
     , description           :: string()
-    , things = []           :: list(character_t())               
+    , things = []           :: list(#character_proc{})               
     %, things = []          :: list(character() | item()) % @todo item type
     , north_door = none     :: pid() | 'none'       % @todo room types?
     , east_door = none      :: pid() | 'none'
@@ -30,10 +30,23 @@
     , west_door = none      :: pid() | 'none'
     }).
     
--type room_t() :: {Proc :: pid(), Id :: reference(), Description :: string()}.
-%% room_t() is a type which includes a room process, its unique identifier, and
-%% its human readable description, the latter two of which are immutable in its
-%% state, which helps to prevent unnecessary query messages.
+% -type room_t() :: {Proc :: pid(), Id :: reference(), Description :: string()}.
+% %% room_t() is a type which includes a room process, its unique identifier, and
+% %% its human readable description, the latter two of which are immutable in its
+% %% state, which helps to prevent unnecessary query messages.
+
+%% @doc A room process. Includes the process id and the static state
+%% of that room's #room record.
+%% `pid': the room process' pid.
+%%
+%% `id': the unique identifier for the room, see #room.id.
+%%
+%% `name': the description of the room, see #room.description.
+-record(room_proc,
+    { pid                   :: pid()
+    , id                    :: reference()
+    , description           :: string()
+    }).
 
 -spec make_room(string()) -> #room{}.
 %% @doc Create a new room with no linked rooms and nothing in it. Returns the

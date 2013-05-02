@@ -6,7 +6,7 @@
 
 -include("room.hrl").
 
-%% @doc A character's state.
+%% @doc A character's state. To be maintained by a character process.
 %% `id': the unique identifier for the character.
 %%
 %% `name': a human-readable string which will be displayed to the user as the
@@ -30,10 +30,23 @@
     , room              :: room_t()
     }).
     
--type character_t() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
-%% character() is a type which includes a character process and all of its
-%% record data which will not change, which is useful for avoiding unnecessary
-%% queries to other processes
+% -type character_t() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
+% %% character() is a type which includes a character process and all of its
+% %% record data which will not change, which is useful for avoiding unnecessary
+% %% queries to other processes
+
+%% @doc A character process. Includes the process id and the static state
+%% of that character's #character record.
+%% `pid': the character process' pid.
+%%
+%% `id': the unique identifier for the character, see #character.id.
+%%
+%% `name': the name of the character, see #character.name.
+-record(character_proc,
+    { pid               :: pid()
+    , id                :: reference()
+    , name              :: string()
+    }).
 
 -spec make_character(string(), non_neg_integer(), pos_integer(), room_t()) -> 
     #character{}.
