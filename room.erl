@@ -31,7 +31,7 @@ start(Description) ->
 
 %Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
--spec targetAction(room_type(), action()) -> {'ok' | 'error', atom()}.
+-spec targetAction(room_t(), action()) -> {'ok' | 'error', atom()}.
 targetAction({RoomPid, _ , _}, Action) -> 
 	RoomPid ! {self(), targetAction, Action},
 	receive_response().
@@ -40,20 +40,20 @@ targetAction({RoomPid, _ , _}, Action) ->
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %sends it to person in the form of action()
 %returns the result from person OR {error, {why, who}}
--spec targetInput(room_type(), hr_input()) -> {'ok' | 'error', atom()}.
+-spec targetInput(room_t(), hr_input()) -> {'ok' | 'error', atom()}.
 targetInput({RoomPid, _ , _}, Input) ->
 	RoomPid ! {self(), targetInput, Input},
 	receive_response().
 
 %get a list of all the things in the room
--spec look(room_type()) -> [thing_type()].
+-spec look(room_t()) -> [thing_type()].
 look({RoomPid, _ , _}) ->
 	RoomPid ! {self(), look},
 	receive_response().
 %Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
 %I'm using the event format {event, BY, VERB, ON, WITH}
 %we should handel hr message text somewhere else
--spec broadcast(room_type(), event()) -> any().
+-spec broadcast(room_t(), event()) -> any().
 broadcast({RoomPid, _, _}, Event) ->
 	RoomPid ! {self(), broadcast, Event}.
 
