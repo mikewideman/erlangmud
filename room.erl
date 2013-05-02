@@ -77,7 +77,7 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 		{Sender, targetInput, Input} ->
 			Sender ! s_targetInput(Room, Input),
 			main(Room)
-	after 0 -> main(Room)
+	after 0 -> main(R)oom)
 	end.
 
 %%%SERVER FUNCTIONS
@@ -99,7 +99,25 @@ s_targetAction(Room, Action) ->
 			false		-> {error, {notInRoom, directObject}}
 		end %end search for DI
 	end.
+s_targetInput(Room, Input) ->
+	{Verb, SubjectString, DObjectString} = Input,
+	Subject = hrThingToThing(Room, SubjectString),
+	DObject = hrThingToThing(Room, DObjectString),
 
+%get a thing in the room by its name. 
+%possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
+hrThingToThing(Room, ThingString) ->
+	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
+	N = string:strip(string:to_lower(ThingString)),
+	E = fun({_, _, Name}) -> string:equal(Name, N) end, %an equality function
+	case lists:filter(E, Room#room.things) of
+		[] -> {error, notInRoom};
+
+		%multiple things in the room with the same name! Error (maybe handle more gracefully another time?)
+		List when length(List) > 1 -> {error, multipleMatches};
+
+		[Thing | _Cdr] 	-> Thing %hey, looky here. Found your thing!
+	end.
 
 
 %%%HELPER%%%
