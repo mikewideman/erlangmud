@@ -31,31 +31,31 @@ start(Description) ->
 
 %Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
--spec targetAction(room_t(), action()) -> {'ok' | 'error', atom()}.
-targetAction({RoomPid, _ , _}, Action) -> 
-	RoomPid ! {self(), targetAction, Action},
+-spec targetAction(#room_proc{}, #action{}) -> {'ok' | 'error', atom()}.
+targetAction(Room_Proc, Action) -> 
+	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
 %Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
-%sends it to person in the form of action()
+%sends it to person in the form of #action{}
 %returns the result from person OR {error, {why, who}}
--spec targetInput(room_t(), hr_input()) -> {'ok' | 'error', atom()}.
-targetInput({RoomPid, _ , _}, Input) ->
-	RoomPid ! {self(), targetInput, Input},
+-spec targetInput(#room_proc{}, hr_input()) -> {'ok' | 'error', atom()}.
+targetInput(Room_Proc, Input) ->
+	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
 
 %get a list of all the things in the room
--spec look(room_t()) -> [thing_type()].
-look({RoomPid, _ , _}) ->
-	RoomPid ! {self(), look},
+-spec look(#room_proc{}) -> [thing_type()].
+look(Room_Proc) ->
+	Room_Proc#room_proc.pid ! {self(), look},
 	receive_response().
 %Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
 %I'm using the event format {event, BY, VERB, ON, WITH}
 %we should handel hr message text somewhere else
--spec broadcast(room_t(), event()) -> any().
-broadcast({RoomPid, _, _}, Event) ->
-	RoomPid ! {self(), broadcast, Event}.
+-spec broadcast(#room_proc{}, event()) -> any().
+broadcast(Room_Proc, Event) ->
+	Room_Proc#room_proc.pid ! {self(), broadcast, Event}.
 
 %wait for an incoming message and return it as a return value
 receive_response() ->
@@ -71,7 +71,7 @@ receive_response() ->
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
     %% @todo modify Room and main with 'NewRoom' or something of that sort
 	receive
-		{Sender, targetAction, Action} -> 
+		{Sender, targetAction, Action} when is_record(Action, action) -> 
 			Sender ! s_targetAction(Room, Action),
 			main(Room);
 		{Sender, look}		->
@@ -110,7 +110,7 @@ s_targetAction(Room, Action) ->
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %% Isn't that an action? ^
-%sends it to person in the form of action()
+%sends it to person in the form of #action{}
 %returns the result from person OR {error, {why, who}}
 s_targetInput(Room, Input) ->
 	{Verb, Subject, DObjectString} = Input,
