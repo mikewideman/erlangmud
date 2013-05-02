@@ -42,6 +42,7 @@
 %% `id': the unique identifier for the character, see #character.id.
 %%
 %% `name': the name of the character, see #character.name.
+%% @end
 -record(character_proc,
     { pid               :: pid()
     , id                :: reference()
