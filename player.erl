@@ -7,6 +7,7 @@
 -module(player).
 -export([start/1, play/2, status/0]).
 -include("character.hrl").
+-include("action.hrl").
 
 % start(Name) -> 
 	% Player = spawn(player, play, [self(), Name]),
@@ -64,10 +65,28 @@ main(Player) ->
         {attacked, AttackerName, DamageTaken} ->
             %% @todo send actions
             Player;
+
         {entered, {RoomPid, RoomId, RoomDescription}} -> % i.e. a room_t()
             Player#player
-                { room = {RoomPid, RoomId, RoomDescription}
-                }
+                {
+                    room = {RoomPid, RoomId, RoomDescription}
+                };
+
+        {attack, self(), TargetPid} ->
+            response =
+                Room:targetAction(Player#character.room, {attack, self(), targetPid}),
+            Player;
+
+        {enter, self(), RoomPid} ->
+            response =
+                Room:targetAction(Player#character.room, {enter, self(), RoomPid}),
+            Player;
+
+        {look} ->
+            response =
+                Room:lookAction(Player#character.room),
+            Player
+
     after 0 ->
         Player
     end,
