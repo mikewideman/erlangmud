@@ -68,7 +68,7 @@ main(Player) ->
             %% @todo
             Player;
 
-        {entered, NewRoom} when is_record(NewRoom, room_proc) ->
+        {entered, _Subject, NewRoom} when is_record(NewRoom, room_proc) ->
             % notified of entered event
             Player#character
                 {
