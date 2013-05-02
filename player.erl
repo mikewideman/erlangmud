@@ -62,40 +62,48 @@ start(Name, Health, Attack, Room) ->
 main(Player) ->
     {CurrRoomPid, _CurrRoomId, _CurrRoomDesc} = Player#character.room,
     NewPlayer = receive
-    %% @todo respond to events
-        {attacked, AttackerName, DamageTaken} ->
-            % notified of attacked event
-            %% @todo
-            Player;
-
-        {entered, _Subject, NewRoom} when is_record(NewRoom, room_proc) ->
-            % notified of entered event
-            Player#character
-                {
-                    room = NewRoom
-                };
-
-        {attack, self(), Target} when is_record(Target, character_proc) -> %% @todo generalize for things when ready
-            % got a command to perfom attack action
-            response =
-                Room:targetAction(CurrRoomPid, {attack, self(), Target#room_proc.pid}),
-            %% @todo
-            Player;
-
-        {enter, self(), TargetRoom} when is_record(TargetRoom, room_proc) ->
-            % got a command to perform enter action
-            response =
-                Room:targetAction(CurrRoomPid, {enter, self(), TargetRoom#room_proc.pid}),
-            %% @todo
-            Player;
-
-        {look, _Subject, _Object} ->
-            % got a command to perform look action
-            response =
-                Room:lookAction(CurrRoomPid),
-            %% @todo
-            Player
-
+        %% @todo differentiate between events and actions, guard on contents
+        Action when is_record(Action, action) ->
+            Verb = Action#action.verb,
+            Subject = Action#action.subject,
+            Object = Action#action.object,
+            NewPlayer1 = case Verb of
+                attack ->
+                    % got a command to perfom attack action
+                    Response = Room:targetAction(CurrRoomPid, Action),
+                    %% @todo handle response
+                    Player;
+                enter ->
+                    % got a command to perform enter action
+                    Response = Room:targetAction(CurrRoomPid, Action),
+                    %% @todo handle response
+                    Player;
+                look ->
+                    % got a command to perform look action
+                    Response = Room:lookAction(CurrRoomPid),
+                    %% @todo
+                    Player
+            end;
+        Event when is_record(Event, event) -> %% @todo define event record
+            Participle = Event#event.participle,
+            %% @todo identify other parts of events
+            %% @todo notify user of event (if someone else isn't doing that)
+            NewPlayer1 = case Participle of
+                attacked ->
+                    % notified of attacked event
+                    %% @todo decide what DamageTaken would be in the event record
+                    HealthRemaining = Player#character.health - DamageTaken,
+                    if  HealthRemaining > 0 ->
+                            Player#character{health = HealthRemaining};
+                        HealthRemaining =< 0 ->
+                            %% @todo die
+                            Player#character{health = 0}
+                    end;
+                entered ->
+                    % notified of entered event
+                    %% @todo decide what NewRoom would be in the event record
+                    Player#character{room = NewRoom}
+            end
     after 0 ->
         Player
     end,
