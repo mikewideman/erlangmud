@@ -33,8 +33,20 @@
 %%
 %% `object': the object (the target of the action) of the sentence. i.e. the
 %% direct object of the sentence.
+%% @end
 -record(action,
     { verb                  :: verb()
     , subject               :: #character_proc{}
     , object                :: #character_proc{}    %% @todo allow for item_procs
     }).
+
+-spec make_action(verb(), pid(), pid()) -> #action{}.
+%% @doc Create an action structure given the parts of the sentence which form
+%% it.
+%% @end
+make_action(Verb, Subject, Object) ->
+    #action
+            { verb = Verb
+            , subject = Subject
+            , object = Object
+            }.

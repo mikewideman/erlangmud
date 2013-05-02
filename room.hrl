@@ -42,6 +42,7 @@
 %% `id': the unique identifier for the room, see #room.id.
 %%
 %% `name': the description of the room, see #room.description.
+%% @end
 -record(room_proc,
     { pid                   :: pid()
     , id                    :: reference()

@@ -27,7 +27,7 @@
     , health = 1        :: non_neg_integer()
     , attack = 1        :: pos_integer()
     , inventory = []    :: list()               % @todo: define item type
-    , room              :: room_t()
+    , room              :: #room_proc{}
     }).
     
 % -type character_t() :: {Proc :: pid(), Id :: reference(), Name :: string()}.
@@ -42,6 +42,7 @@
 %% `id': the unique identifier for the character, see #character.id.
 %%
 %% `name': the name of the character, see #character.name.
+%% @end
 -record(character_proc,
     { pid               :: pid()
     , id                :: reference()
