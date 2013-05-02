@@ -129,9 +129,9 @@ s_targetInput(Room, Input) ->
             %% what is this person module?
 			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
 		end;
--spec(#room_proc{}, thing_type()) -> #room_proc{}.
+-spec(#room{}, thing_type()) -> #room{}.
 addThing(Room, Thing) -> 
-	NewRoom = Room#room_proc{things=[Thing | AllThings]}
+	NewRoom = Room#room{things=[Thing | AllThings]}
 	propagateEvent(Room, {enter, Thing}),
 	NewRoom.
 %%%HELPER%%%
