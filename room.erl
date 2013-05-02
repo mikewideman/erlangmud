@@ -69,6 +69,7 @@ receive_response() ->
 %% @doc The main function of a room process. Loops forever.
 %% @end
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
+    %% @todo modify Room and main with 'NewRoom' or something of that sort
 	receive
 		{Sender, targetAction, Action} -> 
 			Sender ! s_targetAction(Room, Action),
@@ -82,18 +83,18 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 		{Sender, targetInput, Input} ->
 			Sender ! s_targetInput(Room, Input),
 			main(Room)
-	after 0 -> main(R)oom)
+	after 0 -> main(Room)
 	end.
 
 %%%SERVER FUNCTIONS
 s_targetAction(Room, Action) ->
 	{_Verb, SubjectPid, DObjectPid} = Action,
 	%first make sure the subject is in the room
-	case lists:keysearch(SubjectPid, 3, Room#room.things) of
+	case lists:keysearch(SubjectPid, 1, Room#room.things) of %% the character_t keeps the pid in its first index
 		false	->	{error, {notInRoom, subject}};
 		{value, _Subject} ->
 		%search for the direct object in the room, and send it the action
-		case lists:keysearch(DObjectPid, 3, Room#room.things) of
+		case lists:keysearch(DObjectPid, 1, Room#room.things) of
 			%the direct object exists. Send it the action.
 			{value, Thing} -> case thing:handleAction(Thing, Action) of
 				%if it errored, return the error
@@ -108,6 +109,7 @@ s_targetAction(Room, Action) ->
 %Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
+%% Isn't that an action? ^
 %sends it to person in the form of action()
 %returns the result from person OR {error, {why, who}}
 s_targetInput(Room, Input) ->
@@ -115,6 +117,7 @@ s_targetInput(Room, Input) ->
 	DObject = hrThingToThing(Room, DObjectString),
 		case DObject of
 			{error, Reason} -> {error, {Reason, directObject}};
+            %% what is this person module?
 			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
 		end;
 
