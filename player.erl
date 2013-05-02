@@ -55,7 +55,7 @@ start(Name, Health, Attack, Room) ->
     Player = make_character(Name, Health, Attack, Room),
     spawn(fun() -> main(Player) end).
 
--spec main(#character) -> no_return().
+-spec main(#character{}) -> no_return().
 %% @doc The main function of a player. Loops forever.
 %% @end
 main(Player) ->
