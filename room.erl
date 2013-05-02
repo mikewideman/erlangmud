@@ -130,7 +130,7 @@ s_targetInput(Room, Input) ->
 			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
 		end;
 -spec(#room{}, thing_type()) -> #room{}.
-addThing(Room, Thing) -> 
+s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | AllThings]}
 	propagateEvent(Room, {enter, Thing}),
 	NewRoom.
