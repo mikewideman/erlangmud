@@ -16,6 +16,7 @@
 -type verb() ::
       'attack'
     | 'enter'
+    | 'look'
     %% @todo define more verbs
     .
 %% verb() is an atom which is recognized as a valid verb in a command sentence
