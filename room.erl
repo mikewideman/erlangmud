@@ -40,7 +40,7 @@ targetInput({RoomPid, _ , _}, Action) ->
 	RoomPid ! {self(), targetInput, Action},
 	receive_response().
 
-%get a list of pids of all the things in the room
+%get a list of all the things in the room
 -spec look(room_type()) -> [thing_type()].
 look({RoomPid, _ , _}) ->
 	RoomPid ! {self(), look},
@@ -72,7 +72,8 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 			Sender ! Room#room.things, % @todo turn into game event or something
 			main(Room);
 		{_, broadcast, Event} ->
-			doPropagateEvent(Event, Room#room.things), main(Room);
+			propagateEvent(Room, Event),
+			main(Room);
 		{Sender, targetInput, Input} ->
 			Sender ! s_targetInput(Room, Input),
 			main(Room)
@@ -93,7 +94,7 @@ s_targetAction(Room, Action) ->
 				%if it errored, return the error
 				{error, Reason} -> {error, Reason};
 				%if it didn't error, assume it's an event, and propagate it
-				Event		-> lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things)
+				Event		-> propagateEvent(Room, Event)
 			end; %end handle handle action
 			false		-> {error, {notInRoom, directObject}}
 		end %end search for DI
@@ -101,4 +102,6 @@ s_targetAction(Room, Action) ->
 
 
 
-    
+%%%HELPER%%%
+propagateEvent(Room, Event) ->
+	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).
