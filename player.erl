@@ -70,7 +70,7 @@ main(Player) when Player#character.health > 0 ->
             Verb = Action#action.verb,
             Subject = Action#action.subject,
             Object = Action#action.object,
-            Response = Room:targetAction(CurrRoomPid, Action),
+            Response = room:targetAction(CurrRoomPid, Action),
             case Verb of
                 % each case in this block needs to return the NewPlayer
                 attack ->
