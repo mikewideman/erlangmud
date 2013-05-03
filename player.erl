@@ -100,8 +100,6 @@ main(Player) when Player#character.health > 0 ->
                     if  HealthRemaining > 0 ->
                             Player#character{health = HealthRemaining};
                         HealthRemaining =< 0 ->
-                            % I don't think a die() function should work like
-                            % performAction would
                             Player#character{health = 0}
                     end;
                 entered ->
@@ -117,6 +115,12 @@ main(Player) when Player#character.health > 0 ->
 %% #player{} record.
 %% @end
 main(Player) when Player#character.health == 0 ->
+    notifyOfDeath(  Player#character.room
+                    , #player_proc  { pid = self()
+                                    , id = Player#character.id
+                                    , name = Player#character.name
+                                    }
+                    ),
     %% @todo do anything else we might want here
     exit({died, Player}).
 
