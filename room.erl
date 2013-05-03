@@ -110,7 +110,9 @@ s_targetAction(Room, Action) ->
 				%if it errored, return the error
 				{error, Reason} -> {error, Reason};
 				%if it didn't error, assume it's an event, and propagate it
-				Event		-> propagateEvent(Room, Event)
+				Event		-> 
+					propagateEvent(Room, Event),
+					{ok, Event}
 			end; %end handle handle action
 			false		-> {error, {notInRoom, directObject}}
 		end %end search for DI
