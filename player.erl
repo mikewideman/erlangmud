@@ -5,7 +5,7 @@
 %%%=============================================================================
 
 -module(player).
--export([start/1, play/2, status/0]).
+-export([start/1, performAction/2]).
 -include("character.hrl").
 -include("action.hrl").
 
@@ -64,6 +64,7 @@ main(Player) ->
     NewPlayer = receive
         %% @todo differentiate between events and actions, guard on contents
         Action when is_record(Action, action) ->
+            % got a command to perform an action
             Verb = Action#action.verb,
             Subject = Action#action.subject,
             Object = Action#action.object,
@@ -85,6 +86,7 @@ main(Player) ->
                     Player
             end;
         Event when is_record(Event, event) -> %% @todo define event record
+            % notified of a game event
             Participle = Event#event.participle,
             %% @todo identify other parts of events
             %% @todo notify user of event (if someone else isn't doing that)
@@ -108,4 +110,18 @@ main(Player) ->
         Player
     end,
     main(NewPlayer).
+
+-spec performAction(#player_proc{}, #action{}) -> any().
+%% @doc Tell a Player to perform an Action.
+%% @end
+performAction(Player_Proc, Action) ->
+    % is the room going to turn the incoming message into an #action{}, or is
+    % it up to the player to do so?
+    Player_Proc#player_proc#pid ! Action,
+    % is the process calling this function actually concerned with a return?
+    receive
+        Any -> Any
+    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+        timeout
+    end.
     
