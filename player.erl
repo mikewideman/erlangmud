@@ -92,7 +92,8 @@ main(Player) when Player#character.health > 0 ->
             Participle = Event#event.participle,
             %% @todo identify other parts of events
             %% @todo notify user of event (if someone else isn't doing that)
-            NewPlayer1 = case Participle of
+            case Participle of
+                % each case in this block needs to return the NewPlayer
                 attacked ->
                     % notified of attacked event
                     %% @todo differentiate between you being attacked and someone else being attacked
