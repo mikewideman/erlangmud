@@ -7,6 +7,7 @@
 -module(player).
 -export([start/1, performAction/2, recieveEventNotification/2]).
 -include("character.hrl").
+-include("room.hrl").
 -include("action.hrl").
 
 % start(Name) -> 
@@ -69,29 +70,30 @@ main(Player) when Player#character.health > 0 ->
             Verb = Action#action.verb,
             Subject = Action#action.subject,
             Object = Action#action.object,
-            NewPlayer1 = case Verb of
+            Response = room:targetAction(CurrRoomPid, Action),
+            case Verb of
+                % each case in this block needs to return the NewPlayer
                 attack ->
                     % got a command to perfom attack action
-                    Response = Room:targetAction(CurrRoomPid, Action),
                     %% @todo handle response
                     Player;
                 enter ->
                     % got a command to perform enter action
-                    Response = Room:targetAction(CurrRoomPid, Action),
                     %% @todo handle response
-                    Player;
-                look ->
-                    % got a command to perform look action
-                    Response = Room:look(CurrRoomPid),
-                    %% @todo handle response, which is a list of Things
                     Player
+                % look ->
+                    % % got a command to perform look action
+                    % Response = Room:look(CurrRoomPid),
+                    % %% @todo handle response, which is a list of Things
+                    % Player
             end;
         Event when is_record(Event, event) -> %% @todo define event record
             % notified of a game event
             Participle = Event#event.participle,
             %% @todo identify other parts of events
             %% @todo notify user of event (if someone else isn't doing that)
-            NewPlayer1 = case Participle of
+            case Participle of
+                % each case in this block needs to return the NewPlayer
                 attacked ->
                     % notified of attacked event
                     %% @todo differentiate between you being attacked and someone else being attacked
