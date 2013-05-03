@@ -57,9 +57,10 @@ start(Name, Health, Attack, Room) ->
     spawn(fun() -> main(Player) end).
 
 -spec main(#character{}) -> no_return().
-%% @doc The main function of a player. Loops forever.
+%% @doc The main function of a Player. Loops forever so long as the Player does
+%% not die.
 %% @end
-main(Player) ->
+main(Player) when Player#character.health > 0 ->
     {CurrRoomPid, _CurrRoomId, _CurrRoomDesc} = Player#character.room,
     NewPlayer = receive
         %% @todo differentiate between events and actions, guard on contents
@@ -82,7 +83,7 @@ main(Player) ->
                 look ->
                     % got a command to perform look action
                     Response = Room:lookAction(CurrRoomPid),
-                    %% @todo
+                    %% @todo handle response
                     Player
             end;
         Event when is_record(Event, event) -> %% @todo define event record
@@ -93,12 +94,14 @@ main(Player) ->
             NewPlayer1 = case Participle of
                 attacked ->
                     % notified of attacked event
+                    %% @todo differentiate between you being attacked and someone else being attacked
                     %% @todo decide what DamageTaken would be in the event record
                     HealthRemaining = Player#character.health - DamageTaken,
                     if  HealthRemaining > 0 ->
                             Player#character{health = HealthRemaining};
                         HealthRemaining =< 0 ->
-                            %% @todo die
+                            % I don't think a die() function should work like
+                            % performAction would
                             Player#character{health = 0}
                     end;
                 entered ->
@@ -109,16 +112,33 @@ main(Player) ->
     after 0 ->
         Player
     end,
-    main(NewPlayer).
+    main(NewPlayer);
+%% @doc Player dies and exits with reason {died, Player} where Player is the
+%% #player{} record.
+%% @end
+main(Player) when Player#character.health == 0 ->
+    %% @todo do anything else we might want here
+    exit({died, Player}).
 
--spec performAction(#player_proc{}, #action{}) -> any().
+-spec performAction(#character_proc{}, #action{}) -> any().
 %% @doc Tell a Player to perform an Action.
 %% @end
 performAction(Player_Proc, Action) ->
     % is the room going to turn the incoming message into an #action{}, or is
     % it up to the player to do so?
-    Player_Proc#player_proc#pid ! Action,
+    Player_Proc#character_proc#pid ! Action,
     % is the process calling this function actually concerned with a return?
+    receive
+        Any -> Any
+    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+        timeout
+    end.
+
+-spec notifyOfDeath(#room_proc, #character_proc) -> any().
+%% @doc Tell the Room you are in that you have died.
+%% @end
+notifyOfDeath(Room_Proc, Player_Proc) ->
+    room:broadcast(Room_Proc, {died, Player_Proc}),
     receive
         Any -> Any
     after 0 ->  %% @todo choose a timeout amount or use a timeout argument
