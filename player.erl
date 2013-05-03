@@ -130,7 +130,7 @@ main(Player) when Player#character.health == 0 ->
 performAction(Player_Proc, Action) ->
     % is the room going to turn the incoming message into an #action{}, or is
     % it up to the player to do so?
-    Player_Proc#character_proc#pid ! Action,
+    Player_Proc#character_proc.pid ! Action,
     % is the process calling this function actually concerned with a return?
     receive
         Any -> Any
