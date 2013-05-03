@@ -51,16 +51,44 @@
     { verb                  :: verb() | participle()
     , subject               :: #character_proc{}
     , object                :: #character_proc{}    %% @todo allow for item_procs
-    , type = action         :: 'action' | 'input' | 'event'
+    % , type = action         :: 'action' | 'input' | 'event'
     }).
 
--spec make_action(verb(), pid(), pid()) -> #action{}.
+%% @doc The formal event structure. Represented as the parts of a sentence
+%% which indicate an event, e.g. "skeleton attacked you" or "you were attacked
+%% by skeleton"
+%% `participle': the (past) participle (i.e., past form of verb) of the sentence
+%% .
+%%
+%% `subject': the subject ( i.e., the thing which caused the event) of the
+%% sentence.
+%%
+%% `object': the object (i.e., the thing to which the event happened) of the
+%% sentence, e.g. the character which the skeleton attacked.
+%% @end
+-record(event
+    { participle            :: participle()
+    , subject               :: #character_proc{}
+    , object                :: #character_proc{}
+    }).
+    
+
+-spec make_action(verb(), #character_proc{}, #character_proc{}) -> #action{}.
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
 %% @end
 make_action(Verb, Subject, Object) ->
-    #action
-            { verb = Verb
+    #action { verb = Verb
+            , subject = Subject
+            , object = Object
+            }.
+
+-spec make_event(participle(), #character_proc{}, #character_proc{}) ->
+    #event{}.
+%% @doc Create an event structure given the parts of the sentence which form it.
+%% @end
+make_event(Participle, Subject, Object) ->
+    #event  { participle = Participle
             , subject = Subject
             , object = Object
             }.
