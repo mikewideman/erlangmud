@@ -7,6 +7,7 @@
 -module(player).
 -export([start/1, performAction/2, recieveEventNotification/2]).
 -include("character.hrl").
+-include("room.hrl").
 -include("action.hrl").
 
 % start(Name) -> 
