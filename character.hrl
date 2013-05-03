@@ -59,18 +59,27 @@
 %% health or attack are desired, use the atom 'default' for their arguments.
 %% Returns the new character.
 %% @end
+make_character(Name, default, default, Room) ->
+    #character  { id = make_ref()
+                , name = Name
+                , room = Room
+                };
+make_character(Name, Health, default, Room) ->
+    #character  { id = make_ref()
+                , name = Name
+                , health = Health
+                , room = Room
+                };
+make_character(Name, default, Attack, Room) ->
+    #character  { id = make_ref()
+                , name = Name
+                , attack = Attack
+                , room = Room
+                };
 make_character(Name, Health, Attack, Room) ->
-    Id = make_ref(),
-    if Health == default andalso Attack == default ->
-        #character{id = Id, room = Room};
-    if Health =/= default and Attack == default ->
-        #character{id = Id, health = Health, room = Room};
-    if Health == default and Attack =/= default ->
-        #character{id = Id, attack = Attack, room = Room};
-    if Health =/= default and Attack =/= default ->
-        #character  { id = Id
-                    , name = Name
-                    , health = Health
-                    , attack = Attack
-                    , room = Room
-                    }.
+    #character  { id = make_ref()
+                , name = Name
+                , health = Health
+                , attack = Attack
+                , room = Room
+                }.
