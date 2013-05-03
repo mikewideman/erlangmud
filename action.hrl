@@ -28,6 +28,7 @@
       'attacked'
     | 'entered' 
     | verb()
+    % might die be a verb, so that it is an action to die?
     .
 %% verb() is an atom which is recognized as a valid verb in a command sentence
 %% issued by the user. In general, verbs are the valid "kinds" of actions.

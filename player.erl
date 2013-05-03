@@ -5,7 +5,7 @@
 %%%=============================================================================
 
 -module(player).
--export([start/1, play/2, status/0]).
+-export([start/1, performAction/2]).
 -include("character.hrl").
 -include("action.hrl").
 
@@ -57,47 +57,95 @@ start(Name, Health, Attack, Room) ->
     spawn(fun() -> main(Player) end).
 
 -spec main(#character{}) -> no_return().
-%% @doc The main function of a player. Loops forever.
+%% @doc The main function of a Player. Loops forever so long as the Player does
+%% not die.
 %% @end
-main(Player) ->
+main(Player) when Player#character.health > 0 ->
     {CurrRoomPid, _CurrRoomId, _CurrRoomDesc} = Player#character.room,
     NewPlayer = receive
-    %% @todo respond to events
-        {attacked, AttackerName, DamageTaken} ->
-            % notified of attacked event
-            %% @todo
-            Player;
-
-        {entered, _Subject, NewRoom} when is_record(NewRoom, room_proc) ->
-            % notified of entered event
-            Player#character
-                {
-                    room = NewRoom
-                };
-
-        {attack, self(), Target} when is_record(Target, character_proc) -> %% @todo generalize for things when ready
-            % got a command to perfom attack action
-            response =
-                Room:targetAction(CurrRoomPid, {attack, self(), Target#room_proc.pid}),
-            %% @todo
-            Player;
-
-        {enter, self(), TargetRoom} when is_record(TargetRoom, room_proc) ->
-            % got a command to perform enter action
-            response =
-                Room:targetAction(CurrRoomPid, {enter, self(), TargetRoom#room_proc.pid}),
-            %% @todo
-            Player;
-
-        {look, _Subject, _Object} ->
-            % got a command to perform look action
-            response =
-                Room:lookAction(CurrRoomPid),
-            %% @todo
-            Player
-
+        %% @todo differentiate between events and actions, guard on contents
+        Action when is_record(Action, action) ->
+            % got a command to perform an action
+            Verb = Action#action.verb,
+            Subject = Action#action.subject,
+            Object = Action#action.object,
+            NewPlayer1 = case Verb of
+                attack ->
+                    % got a command to perfom attack action
+                    Response = Room:targetAction(CurrRoomPid, Action),
+                    %% @todo handle response
+                    Player;
+                enter ->
+                    % got a command to perform enter action
+                    Response = Room:targetAction(CurrRoomPid, Action),
+                    %% @todo handle response
+                    Player;
+                look ->
+                    % got a command to perform look action
+                    Response = Room:lookAction(CurrRoomPid),
+                    %% @todo handle response
+                    Player
+            end;
+        Event when is_record(Event, event) -> %% @todo define event record
+            % notified of a game event
+            Participle = Event#event.participle,
+            %% @todo identify other parts of events
+            %% @todo notify user of event (if someone else isn't doing that)
+            NewPlayer1 = case Participle of
+                attacked ->
+                    % notified of attacked event
+                    %% @todo differentiate between you being attacked and someone else being attacked
+                    %% @todo decide what DamageTaken would be in the event record
+                    HealthRemaining = Player#character.health - DamageTaken,
+                    if  HealthRemaining > 0 ->
+                            Player#character{health = HealthRemaining};
+                        HealthRemaining =< 0 ->
+                            Player#character{health = 0}
+                    end;
+                entered ->
+                    % notified of entered event
+                    %% @todo decide what NewRoom would be in the event record
+                    Player#character{room = NewRoom}
+            end
     after 0 ->
         Player
     end,
-    main(NewPlayer).
+    main(NewPlayer);
+%% @doc Player dies and exits with reason {died, Player} where Player is the
+%% #player{} record.
+%% @end
+main(Player) when Player#character.health == 0 ->
+    notifyOfDeath(  Player#character.room
+                    , #player_proc  { pid = self()
+                                    , id = Player#character.id
+                                    , name = Player#character.name
+                                    }
+                    ),
+    %% @todo do anything else we might want here
+    exit({died, Player}).
+
+-spec performAction(#character_proc{}, #action{}) -> any().
+%% @doc Tell a Player to perform an Action.
+%% @end
+performAction(Player_Proc, Action) ->
+    % is the room going to turn the incoming message into an #action{}, or is
+    % it up to the player to do so?
+    Player_Proc#character_proc#pid ! Action,
+    % is the process calling this function actually concerned with a return?
+    receive
+        Any -> Any
+    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+        timeout
+    end.
+
+-spec notifyOfDeath(#room_proc, #character_proc) -> any().
+%% @doc Tell the Room you are in that you have died.
+%% @end
+notifyOfDeath(Room_Proc, Player_Proc) ->
+    room:broadcast(Room_Proc, {died, Player_Proc}),
+    receive
+        Any -> Any
+    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+        timeout
+    end.
     
