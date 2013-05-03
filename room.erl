@@ -40,8 +40,8 @@ targetAction(Room_Proc, Action) ->
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %sends it to person in the form of #action{}
 %returns the result from person OR {error, {why, who}}
--spec targetInput(#room_proc{}, hr_input()) -> {'ok' | 'error', atom()}.
-targetInput(Room_Proc, Input) ->
+-spec targetInput(#room_proc{}, #action{})-> {'ok' | 'error', atom()}.
+targetInput(Room_Proc, Input) when Input#action.type == input->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
 
@@ -53,8 +53,8 @@ look(Room_Proc) ->
 %Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
 %I'm using the event format {event, BY, VERB, ON, WITH}
 %we should handel hr message text somewhere else
--spec broadcast(#room_proc{}, event()) -> any().
-broadcast(Room_Proc, Event) ->
+-spec broadcast(#room_proc{}, #action{}) -> any().
+broadcast(Room_Proc, Event) when Event#action.type == event->
 	Room_Proc#room_proc.pid ! {self(), broadcast, Event}.
 
 %add a thing to the room (enter it, spawn it, whatever you want to call it). 
@@ -97,7 +97,8 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 
 %%%SERVER FUNCTIONS
 s_targetAction(Room, Action) ->
-	{_Verb, SubjectPid, DObjectPid} = Action,
+	SubjectPid = Action#action.subject,
+	DObjectPid = Action#action.object,
 	%first make sure the subject is in the room
 	case lists:keysearch(SubjectPid, 1, Room#room.things) of %% the character_t keeps the pid in its first index
 		false	->	{error, {notInRoom, subject}};
@@ -122,7 +123,9 @@ s_targetAction(Room, Action) ->
 %sends it to person in the form of #action{}
 %returns the result from person OR {error, {why, who}}
 s_targetInput(Room, Input) ->
-	{Verb, Subject, DObjectString} = Input,
+	Verb    = Action#action.verb,
+	Subject = Action#action.subject,
+	DObject = Action#action.object,
 	DObject = hrThingToThing(Room, DObjectString),
 		case DObject of
 			{error, Reason} -> {error, {Reason, directObject}};
