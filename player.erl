@@ -5,7 +5,7 @@
 %%%=============================================================================
 
 -module(player).
--export([start/1, performAction/2]).
+-export([start/1, performAction/2, recieveEventNotification/2]).
 -include("character.hrl").
 -include("action.hrl").
 
@@ -115,12 +115,12 @@ main(Player) when Player#character.health > 0 ->
 %% #player{} record.
 %% @end
 main(Player) when Player#character.health == 0 ->
-    notifyOfDeath(  Player#character.room
-                    , #player_proc  { pid = self()
-                                    , id = Player#character.id
-                                    , name = Player#character.name
-                                    }
-                    ),
+    notifyRoomOfDeath   ( Player#character.room
+                        , #player_proc  { pid = self()
+                                        , id = Player#character.id
+                                        , name = Player#character.name
+                                        }
+                        ),
     %% @todo do anything else we might want here
     exit({died, Player}).
 
@@ -138,14 +138,26 @@ performAction(Player_Proc, Action) ->
         timeout
     end.
 
--spec notifyOfDeath(#room_proc, #character_proc) -> any().
-%% @doc Tell the Room you are in that you have died.
+-spec receiveEventNotification(#character_proc, #event) -> any().
+%% @doc Notify the Player of a game event.
 %% @end
-notifyOfDeath(Room_Proc, Player_Proc) ->
-    room:broadcast(Room_Proc, {died, Player_Proc}),
+receiveEventNotification(Player_Proc, Event) ->
+    Player_Proc#character_proc.pid ! Event,
+    % is the process calling this function actually concerned with a return?
     receive
         Any -> Any
     after 0 ->  %% @todo choose a timeout amount or use a timeout argument
         timeout
     end.
-    
+
+-spec notifyRoomOfDeath(#room_proc, #character_proc) -> any().
+%% @doc Tell the Room you are in that you have died.
+%% @end
+notifyRoomOfDeath(Room_Proc, Player_Proc) ->
+    room:broadcast(Room_Proc, {died, Player_Proc}),
+    % is the process calling this function actually concerned with a return?
+    receive
+        Any -> Any
+    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+        timeout
+    end.
