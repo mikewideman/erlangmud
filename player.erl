@@ -142,6 +142,7 @@ performAction(Player_Proc, Action) ->
 %% @doc Tell the Room you are in that you have died.
 %% @end
 notifyOfDeath(Room_Proc, Player_Proc) ->
+    % @todo this should be a proper #event type
     room:broadcast(Room_Proc, {died, Player_Proc}),
     receive
         Any -> Any
