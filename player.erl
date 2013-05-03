@@ -82,8 +82,8 @@ main(Player) when Player#character.health > 0 ->
                     Player;
                 look ->
                     % got a command to perform look action
-                    Response = Room:lookAction(CurrRoomPid),
-                    %% @todo handle response
+                    Response = Room:look(CurrRoomPid),
+                    %% @todo handle response, which is a list of Things
                     Player
             end;
         Event when is_record(Event, event) -> %% @todo define event record
