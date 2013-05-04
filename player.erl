@@ -99,12 +99,17 @@ main(Player) when Player#character.health > 0 ->
                 attacked ->
                     % notified of attacked event
                     %% @todo differentiate between you being attacked and someone else being attacked
-                    %% @todo decide what DamageTaken would be in the event record
-                    HealthRemaining = Player#character.health - DamageTaken,
-                    if  HealthRemaining > 0 ->
-                            Player#character{health = HealthRemaining};
-                        HealthRemaining =< 0 ->
-                            Player#character{health = 0}
+                    if Subject#character_proc.pid == self() ->
+                        %% @todo decide what DamageTaken would be in the event record
+                        HealthRemaining = Player#character.health - DamageTaken,
+                        if  HealthRemaining > 0 ->
+                                Player#character{health = HealthRemaining};
+                            HealthRemaining =< 0 ->
+                                Player#character{health = 0}
+                        end;
+                    if Subject#character_proc.pid /= self() ->
+                        %% @todo decide if anything done at this point
+                        Player
                     end;
                 entered ->
                     % notified of entered event
