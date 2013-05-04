@@ -25,14 +25,26 @@
     | 'enter'
     | 'look'
     %% @todo define more verbs
+    .
+%% verb() is a type which is an atom which is recognized as a valid verb in a
+%% command sentence issued by the user or by character actions in general.
+%% In other words, verbs are the valid "kinds" of actions, although it is
+%% possible to union other atoms with verb() in function specs to make other
+%% "kinds" of actions admissible in certain contexts.
+
 -type participle() ::
       'attacked'
-    | 'entered' 
+    | 'entered'
+    | 'died'
     | verb()
     % might die be a verb, so that it is an action to die?
     .
-%% verb() is an atom which is recognized as a valid verb in a command sentence
-%% issued by the user. In general, verbs are the valid "kinds" of actions.
+%% participle() is a type which is an atom which is recognized as a valid
+%% past participle ('the past form of the verb') of a sentence describing a
+%% game event. In other words, participles are the valid "kinds" of events,
+%% although, like with verbs, it is possible to union other atoms with
+%% participle() in function specs to make other "kinds" of events admissible
+%% in certain contexts.
 
 % -type action() :: {Verb :: verb(), Subject :: pid(), Object :: pid()}.
 % %% action() is a sentence, which contains a verb, a subject, and an object.
@@ -78,11 +90,10 @@
     }).
     
 
--spec make_action   ( verb()
-                    , #character_proc{}
-                    , #character_proc{} | #room_proc{}
-                    ) -> 
-    #action{}.
+-spec make_action   ( Verb          :: verb()
+                    , Subject       :: #character_proc{}
+                    , Object        :: #character_proc{} | #room_proc{}
+                    ) -> #action{}.
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
 %% @end
@@ -92,11 +103,10 @@ make_action(Verb, Subject, Object) ->
             , object = Object
             }.
 
--spec make_event    ( participle()
-                    , #character_proc{}
-                    , #character_proc{} | #room_proc
-                    ) ->
-    #event{}.
+-spec make_event    ( Participle    :: participle()
+                    , Subject       :: #character_proc{}
+                    , Object        :: #character_proc{} | #room_proc
+                    ) -> #event{}.
 %% @doc Create an event structure given the parts of the sentence which form it.
 %% @end
 make_event(Participle, Subject, Object) ->
