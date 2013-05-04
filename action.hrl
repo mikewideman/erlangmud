@@ -18,6 +18,7 @@
 %%%=============================================================================
 
 -include("character.hrl").
+-include("room.hrl").
 
 -type verb() ::
       'attack'
@@ -50,30 +51,38 @@
 -record(action,
     { verb                  :: verb() | participle()
     , subject               :: #character_proc{}
-    , object                :: #character_proc{}    %% @todo allow for item_procs
+    , object                :: #character_proc{} | #room_proc{}
+                                %% @todo allow for item_procs
     % , type = action         :: 'action' | 'input' | 'event'
     }).
 
 %% @doc The formal event structure. Represented as the parts of a sentence
-%% which indicate an event, e.g. "skeleton attacked you" or "you were attacked
-%% by skeleton"
+%% which indicate an event, e.g. "skeleton attacked you" / "you were attacked
+%% by skeleton", or "(character) entered room".
 %% `participle': the (past) participle (i.e., past form of verb) of the sentence
 %% .
 %%
 %% `subject': the subject ( i.e., the thing which caused the event) of the
-%% sentence.
+%% sentence, e.g. the skeleton which attacked some character, or the character
+%% entering some room.
 %%
 %% `object': the object (i.e., the thing to which the event happened) of the
-%% sentence, e.g. the character which the skeleton attacked.
+%% sentence, e.g. the character which the skeleton attacked, or the room which
+%% the character entered.
 %% @end
 -record(event
     { participle            :: participle()
     , subject               :: #character_proc{}
-    , object                :: #character_proc{}
+    , object                :: #character_proc{} | #room_proc{}
+                                %% @todo allow for item_procs
     }).
     
 
--spec make_action(verb(), #character_proc{}, #character_proc{}) -> #action{}.
+-spec make_action   ( verb()
+                    , #character_proc{}
+                    , #character_proc{} | #room_proc{}
+                    ) -> 
+    #action{}.
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
 %% @end
@@ -83,7 +92,10 @@ make_action(Verb, Subject, Object) ->
             , object = Object
             }.
 
--spec make_event(participle(), #character_proc{}, #character_proc{}) ->
+-spec make_event    ( participle()
+                    , #character_proc{}
+                    , #character_proc{} | #room_proc
+                    ) ->
     #event{}.
 %% @doc Create an event structure given the parts of the sentence which form it.
 %% @end
