@@ -26,11 +26,11 @@
     | 'look'
     %% @todo define more verbs
     .
-%% verb() is a type which is an atom which is recognized as a valid verb in a
-%% command sentence issued by the user or by character actions in general.
-%% In other words, verbs are the valid "kinds" of actions, although it is
-%% possible to union other atoms with verb() in function specs to make other
-%% "kinds" of actions admissible in certain contexts.
+%% verb() is an atom which is recognized as a valid verb in a command sentence
+%% issued by the user or by character actions in general. In other words, verbs
+%% are the valid "kinds" of actions, although it is possible to union other atoms
+%% with verb() in function specs to make other "kinds" of actions admissible in
+%% certain contexts.
 
 -type participle() ::
       'attacked'
@@ -39,12 +39,20 @@
     | verb()
     % might die be a verb, so that it is an action to die?
     .
-%% participle() is a type which is an atom which is recognized as a valid
-%% past participle ('the past form of the verb') of a sentence describing a
-%% game event. In other words, participles are the valid "kinds" of events,
-%% although, like with verbs, it is possible to union other atoms with
-%% participle() in function specs to make other "kinds" of events admissible
-%% in certain contexts.
+%% participle() is an atom which is recognized as a valid past participle
+%% ('the past form of the verb') of a sentence describing a game event. In other
+%% words, participles are the valid "kinds" of events, although, like with
+%% verbs, it is possible to union other atoms with participle() in function
+%% specs to make other "kinds" of events admissible in certain contexts.
+%% A participle() need not correlate to one or any verb().
+
+% -type payload_value() ::
+      % {'damage', Damage :: non_neg_integer()}
+    % | {atom(), any()}
+    % .
+% %% payload_value() is a special kind of tuple which is made of an atomic
+% %% tag which describes the data and the data itself.
+
 
 % -type action() :: {Verb :: verb(), Subject :: pid(), Object :: pid()}.
 % %% action() is a sentence, which contains a verb, a subject, and an object.
@@ -65,6 +73,7 @@
     , subject               :: #character_proc{}
     , object                :: #character_proc{} | #room_proc{}
                                 %% @todo allow for item_procs
+    % , payload = []          :: list(payload_value())
     % , type = action         :: 'action' | 'input' | 'event'
     }).
 
@@ -87,12 +96,14 @@
     , subject               :: #character_proc{}
     , object                :: #character_proc{} | #room_proc{}
                                 %% @todo allow for item_procs
+    % , payload = []          :: list(payload_value())
     }).
     
 
 -spec make_action   ( Verb          :: verb()
                     , Subject       :: #character_proc{}
                     , Object        :: #character_proc{} | #room_proc{}
+                    % , Payload       :: list(payload_value())
                     ) -> #action{}.
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
@@ -101,11 +112,13 @@ make_action(Verb, Subject, Object) ->
     #action { verb = Verb
             , subject = Subject
             , object = Object
+            % , payload = Payload
             }.
 
 -spec make_event    ( Participle    :: participle()
                     , Subject       :: #character_proc{}
                     , Object        :: #character_proc{} | #room_proc
+                    % , Payload         :: list(payload_value())
                     ) -> #event{}.
 %% @doc Create an event structure given the parts of the sentence which form it.
 %% @end
@@ -113,4 +126,5 @@ make_event(Participle, Subject, Object) ->
     #event  { participle = Participle
             , subject = Subject
             , object = Object
+            % , payload = Payload
             }.
