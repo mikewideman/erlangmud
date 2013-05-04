@@ -75,6 +75,35 @@ main(Player) when Player#character.health > 0 ->
             Verb = Action#action.verb,
             Subject = Action#action.subject,
             Object = Action#action.object,
+            %% @todo may want to send a payload, e.g. attack damage; see below
+            % ActionToSend = case Verb of
+                % attack ->
+                    % #action { verb = Verb
+                            % , subject = Subject
+                            % , object = Object,
+                            % , payload = [{damage, Player#character.attack}]
+                            % };
+                % enter ->
+                    % Action;
+                % _Other ->
+                    % Action
+            % end,
+            % Response = room:targetAction(CurrRoomPid, ActionToSend),
+            % case Response of
+                % % each case in this block needs to return the NewPlayer
+                % {error, {notInRoom, subject}} ->
+                    % % this player is not in the room which told the player to
+                    % % perform this action
+                    % %% @todo
+                    % Player;
+                % {error, {notInRoom, directObject}} ->
+                    % % the object of the action is not in the room which told
+                    % % the player to perform this action
+                    % %% @todo
+                    % Player;
+                % _Other ->
+                    % Player
+            % end;
             Response = room:targetAction(CurrRoomPid, Action),
             case Verb of
                 % each case in this block needs to return the NewPlayer
@@ -99,13 +128,16 @@ main(Player) when Player#character.health > 0 ->
             Participle = Event#event.participle,
             Subject = Event#event.subject,
             Object = Event#event.object,
-            %% @todo identify other parts of events
-            %% @todo notify user of event (if someone else isn't doing that)
+            %% @todo may want to receive a payload, e.g. damage taken
+            % Payload = Event#event.payload,
+            % %% @todo notify user of event (if someone else isn't doing that)
             case Participle of
                 % each case in this block needs to return the NewPlayer
                 attacked when Subject#character_proc.pid == self() ->
                     % notified of attacked event
                     %% @todo decide how to get DamageTaken
+                    % %% @todo consider a #payload or #payload_value record
+                    % {damage, DamageTaken} = lists:keysearch(damage, 1, Payload),
                     HealthRemaining = Player#character.health - DamageTaken,
                     if  HealthRemaining > 0 ->
                             Player#character{health = HealthRemaining};
@@ -115,6 +147,7 @@ main(Player) when Player#character.health > 0 ->
                 entered when Subject#character_proc.pid == self() ->
                     % notified of entered event
                     % in this case, the Object is the NewRoom.
+                    % would not need a payload
                     Player#character{room = Object};
                 _Other ->
                     Player
