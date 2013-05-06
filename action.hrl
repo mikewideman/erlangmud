@@ -46,12 +46,12 @@
 %% specs to make other "kinds" of events admissible in certain contexts.
 %% A participle() need not correlate to one or any verb().
 
-% -type payload_value() ::
-      % {'damage', Damage :: non_neg_integer()}
-    % | {atom(), any()}
-    % .
-% %% payload_value() is a special kind of tuple which is made of an atomic
-% %% tag which describes the data and the data itself.
+-type payload_value() ::
+      {'damage', Damage :: non_neg_integer()}   %% DamageTaken or DamageDone
+    | {atom(), any()}
+    .
+%% payload_value() is a special kind of tuple which is made of an atomic
+%% tag which describes the data and the data itself.
 
 
 % -type action() :: {Verb :: verb(), Subject :: pid(), Object :: pid()}.
@@ -73,7 +73,7 @@
     , subject               :: #character_proc{}
     , object                :: #character_proc{} | #room_proc{}
                                 %% @todo allow for item_procs
-    % , payload = []          :: list(payload_value())
+    , payload = []          :: list(payload_value())
     % , type = action         :: 'action' | 'input' | 'event'
     }).
 
@@ -96,14 +96,14 @@
     , subject               :: #character_proc{}
     , object                :: #character_proc{} | #room_proc{}
                                 %% @todo allow for item_procs
-    % , payload = []          :: list(payload_value())
+    , payload = []          :: list(payload_value())
     }).
     
 
 -spec make_action   ( Verb          :: verb()
                     , Subject       :: #character_proc{}
                     , Object        :: #character_proc{} | #room_proc{}
-                    % , Payload       :: list(payload_value())
+                    , Payload       :: list(payload_value())
                     ) -> #action{}.
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
@@ -112,13 +112,13 @@ make_action(Verb, Subject, Object) ->
     #action { verb = Verb
             , subject = Subject
             , object = Object
-            % , payload = Payload
+            , payload = Payload
             }.
 
 -spec make_event    ( Participle    :: participle()
                     , Subject       :: #character_proc{}
                     , Object        :: #character_proc{} | #room_proc
-                    % , Payload         :: list(payload_value())
+                    , Payload       :: list(payload_value())
                     ) -> #event{}.
 %% @doc Create an event structure given the parts of the sentence which form it.
 %% @end
@@ -126,5 +126,5 @@ make_event(Participle, Subject, Object) ->
     #event  { participle = Participle
             , subject = Subject
             , object = Object
-            % , payload = Payload
+            , payload = Payload
             }.

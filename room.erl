@@ -25,13 +25,17 @@ start(Description) ->
     spawn(fun() -> main(Room) end).
 
 %functions
-2
+% 2
 %% @todo change to fit action() type
 %%-spec targetAction(pid(), boolean(), action()) -> any().
 
 %Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
--spec targetAction(#room_proc{}, #action{}) -> {'ok' | 'error', atom()}.
+-spec targetAction  ( Room_Proc :: #room_proc{}
+                    , Action    :: #action{}
+                    ) ->  {'ok', #action{}} %% Positive ACK
+                        | {
+                        | {'error', term()} .
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
@@ -97,28 +101,48 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 
 %%%SERVER FUNCTIONS
 s_targetAction(Room, Action) ->
-	SubjectPid = Action#action.subject,
-	DObjectPid = Action#action.object,
-	%first make sure the subject is in the room
-	case lists:keysearch(SubjectPid, #room.things, Room#room.things) of %% #room.things is the index of the things variable
-		false	->	{error, {notInRoom, subject}};
-		{value, _Subject} ->
-		%search for the direct object in the room, and send it the action
-		case lists:keysearch(DObjectPid, #room.things, Room#room.things) of
-			%the direct object exists. Send it the action.
-			{value, Thing} -> case thing:handleAction(Thing, Action) of
-				%if it errored, return the error
-				{error, Reason} -> {error, Reason};
-				%if it didn't error, assume it's an event, and propagate it
-				Event		-> 
-                    case Event#event.participle of
-                        attacked ->
-                            propagateEvent(Room, Event),
-                        read ->
-                            % nope
-                    ok
-			end; %end handle handle action
-			false		-> {error, {notInRoom, directObject}}
+	% Subject = Action#action.subject,
+	% Object = Action#action.object,
+	%% Check for Subject
+    %% Assumes the subject is a character
+    TheSubject = lists:keyfind  ( Action#action.subject#character_proc.id
+                                , #character_proc.id
+                                , Room#room.things),
+	case TheSubject of
+		false ->
+            {error, {notInRoom, Subject}};
+		Subject ->
+            {Key, Index} = case Action#action.object of
+                Object when is_record(Object, character_proc) ->
+                    {Object#character_proc.id, #character_proc.id};
+                Object when is_record(Object, room_proc) ->
+                    {Object#room_proc.id, #room_proc.id}
+            end,
+            %% Check for Object
+            %% Does not assume the object is a character
+            TheObject = lists:keyfind   ( Key
+                                        , Index
+                                        , Room#room.things),
+            case TheObject of
+                false ->
+                    {error, {notInRoom, Object}};
+                Object ->
+                    %% @todo notify object directly
+                    %% @todo broadcast to others
+                    case thing:handleAction(Thing, Action) of
+                        %if it errored, return the error
+                        {error, Reason} ->
+                            {error, Reason};
+                        %if it didn't error, assume it's an event, and propagate it
+                        Event -> 
+                            case Event#event.participle of
+                                attacked ->
+                                    propagateEvent(Room, Event)
+                                % read ->
+                                    % nope
+                            end,
+                            {ok, Action}
+                    end; %end handle handle action
 		end %end search for DI
 	end.
 
