@@ -114,6 +114,10 @@ main(Player) when Player#character.health > 0 ->
                 enter ->
                     % got a command to perform enter action
                     %% @todo handle response
+                    case Response of
+                        ok -> Player#character{room = Object};
+                        {error, _Something} ->
+                            %% do something else
                     Player;
                 % look ->
                     % % got a command to perform look action
@@ -133,7 +137,7 @@ main(Player) when Player#character.health > 0 ->
             % %% @todo notify user of event (if someone else isn't doing that)
             case Participle of
                 % each case in this block needs to return the NewPlayer
-                attacked when Subject#character_proc.pid == self() ->
+                attacked when Object#character_proc.pid == self() ->
                     % notified of attacked event
                     %% @todo decide how to get DamageTaken
                     % %% @todo consider a #payload or #payload_value record
