@@ -41,8 +41,8 @@ targetAction(Room_Proc, Action) ->
 %sends it to player in the form of #action{}
 %returns the result from player OR {error, {why, who}}
 -spec targetInput(#room_proc{}, #action{})-> 'ok' | {'error', atom() | tuple()}.
-targetInput(Room_Proc, Input) when Input#action.type == input->
-	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
+targetInput(Room_Proc, Input, Timeout) when Input#action.type == input->
+	Room_Proc#room_proc.pid ! {self(), targetInput, Input, Timeout},
 	receive_response().
 
 %get a list of all the things in the room
@@ -93,8 +93,8 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 		{_, broadcast, Event} ->
 			propagateEvent(Room, Event),
 			main(Room);
-		{Sender, targetInput, Input} ->
-			Sender ! s_targetInput(Room, Input),
+		{Sender, targetInput, Input, Timeout} ->
+			Sender ! s_targetInput(Room, Input, Timeout),
 			main(Room);
 		{_, addThing, Thing} ->
 			main(s_addThing(Room, Thing));
@@ -135,7 +135,7 @@ s_targetAction(Room, Action) ->
 %% Isn't that an action? ^
 %sends it to player in the form of #action{}
 %returns the result from player OR {error, {why, who}}
-s_targetInput(Room, Input) ->
+s_targetInput(Room, Input, Timeout) ->
 	Verb    = Action#action.verb,
 	Subject = Action#action.subject,
 	DObject = Action#action.object,
@@ -143,7 +143,7 @@ s_targetInput(Room, Input) ->
 		case DObject of
 			{error, Reason} -> {error, {Reason, directObject}};
 						%should be in consistent form of 'ok' | {'error', Reason}
-			_		->	player:performAction(Subject, make_action(Verb, Subject, Object), 100) %no idea what the timeout should be.
+			_		->	player:performAction(Subject, make_action(Verb, Subject, Object), Timeout) %no idea what the timeout should be.
 		end.
 -spec(#room{}, thing_type()) -> #room{}.
 s_addThing(Room, Thing) -> 
