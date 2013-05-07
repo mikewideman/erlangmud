@@ -10,4 +10,16 @@
 -export( [ parse/1 ] ).
 
 parse(String) ->
-	String.
+	doParse( string:tokens( string:to_lower(String), " " ) ).
+
+doParse( [] ) ->
+	{error, "EmptyCommand"};
+
+doParse( [Verb] ) ->
+	{Verb};
+
+doParse( [Verb, Object] ) ->
+	{Verb, Object};
+
+doParse( [Verb, DObj, "with", IObj] ) ->
+	{Verb, DObj, IObj}.
