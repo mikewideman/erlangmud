@@ -40,7 +40,7 @@ targetAction(Room_Proc, Action) ->
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %sends it to player in the form of #action{}
 %returns the result from player OR {error, {why, who}}
--spec targetInput(#room_proc{}, #action{})-> 'ok' | {'error', atom() | tuple()}.
+-spec targetInput(#room_proc{}, #action{}, timeout())-> 'ok' | {'error', atom() | tuple()}.
 targetInput(Room_Proc, Input, Timeout) when Input#action.type == input->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input, Timeout},
 	receive_response().
