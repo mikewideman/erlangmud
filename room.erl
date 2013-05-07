@@ -10,7 +10,7 @@
 %%%=============================================================================
 
 -module(room).
--export([start/1, targetAction/2, look/1, targetInput/2, broadcast/2, addThing/2]).
+-export([start/1, targetAction/2, look/1, targetInput/2, broadcast/2, addThing/2, leaveGame/2).
 -include("room.hrl").
 -include("action.hrl").
 
@@ -59,9 +59,15 @@ broadcast(Room_Proc, Event) when Event#action.type == event->
 
 %add a thing to the room (enter it, spawn it, whatever you want to call it). 
 %an event will be propagated
--spec addThing(#room_proc{}, thing_type()) -> any().
+-spec addThing(#room_proc{}, thing_type()) -> 'ok'.
 addThing(Room_Proc, Thing) ->
-	Room_Proc#room_proc.pid ! {self(), addThing, Thing}.
+	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
+	ok.
+
+-spec leaveGame(#room_proc{}, player_type()) -> {'error', atom()} | 'ok'.
+leaveGame(Room_Proc, Player) ->
+	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
+	receive_response().
 
 %wait for an incoming message and return it as a return value
 %TODO: maybe check that it was the response we were expecting?
@@ -91,7 +97,12 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 			Sender ! s_targetInput(Room, Input),
 			main(Room);
 		{_, addThing, Thing} ->
-			main(s_addThing(Room, Thing))
+			main(s_addThing(Room, Thing));
+		{Sender, leaveGame, Player} ->
+			case s_leaveGame(Room, Player) of
+				{error, Reason} -> Sender ! {error, Reason}, main(Room);
+				{ok, NewRoom} -> Sender ! ok, main(NewRoom)
+			end
 	after 0 -> main(Room)
 	end.
 
@@ -139,6 +150,14 @@ s_addThing(Room, Thing) ->
 	NewRoom = Room#room{things=[Thing | AllThings]}
 	propagateEvent(Room, {enter, Thing}),
 	NewRoom.
+s_leaveGame(Room, Player)  -> 
+	case lists:keysearch(Player, #room.things, Room#room.things) of 
+		false -> {error, notInRoom};
+		{value, Elem} ->
+			propagateEvent(make_event(left, Player, none)),
+			NewRoom = Room#room{things=lists:delete(Elem, Room#room.things)},
+			{ok, NewRoom}
+	end.
 %%%HELPER%%%
 propagateEvent(Room, Event) ->
 	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).

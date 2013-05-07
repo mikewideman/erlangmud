@@ -36,6 +36,7 @@
       'attacked'
     | 'entered'
     | 'died'
+    | 'left'
     | verb()
     % might die be a verb, so that it is an action to die?
     .
