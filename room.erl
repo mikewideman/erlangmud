@@ -35,11 +35,11 @@ start(Description) ->
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
-%Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
+%Targets input to a player from the user, converting the direct object's name from a hr string to a thing type in the process.
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
-%sends it to person in the form of #action{}
-%returns the result from person OR {error, {why, who}}
+%sends it to player in the form of #action{}
+%returns the result from player OR {error, {why, who}}
 -spec targetInput(#room_proc{}, #action{})-> {'ok' | 'error', atom()}.
 targetInput(Room_Proc, Input) when Input#action.type == input->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
@@ -118,12 +118,12 @@ s_targetAction(Room, Action) ->
 		end %end search for DI
 	end.
 
-%Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
+%Targets input to a player from the user, converting the direct object's name from a hr string to a thing type in the process.
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %% Isn't that an action? ^
-%sends it to person in the form of #action{}
-%returns the result from person OR {error, {why, who}}
+%sends it to player in the form of #action{}
+%returns the result from player OR {error, {why, who}}
 s_targetInput(Room, Input) ->
 	Verb    = Action#action.verb,
 	Subject = Action#action.subject,
@@ -131,8 +131,8 @@ s_targetInput(Room, Input) ->
 	DObject = hrThingToThing(Room, DObjectString),
 		case DObject of
 			{error, Reason} -> {error, {Reason, directObject}};
-            %% what is this person module?
-			_		-> person:targetInput(Subject, {Verb, Subject, DObject})
+						%should be in consistent form of /{[ok OR error}, [Reason]}
+			_		-> case player:targetInput(Subject, {Verb, Subject, DObject})
 		end;
 -spec(#room{}, thing_type()) -> #room{}.
 s_addThing(Room, Thing) -> 
