@@ -18,10 +18,11 @@ outputloop() ->
 	end.
 
 inputloop(Pid) ->
-	String = parser:parse(io:get_line("$")).
+	String = io:get_line( "$" ),
+	Pid ! parser:parse(String),
+	inputloop(Pid).
 	
 
 start() ->
-	spawn( ui, outputloop, [] ),
-	spawn( ui, inputloop, ["Fakepid"] ).
-
+	Outpid = spawn( ui, outputloop, [] ),
+	inputloop(Outpid).
