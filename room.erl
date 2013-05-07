@@ -31,7 +31,7 @@ start(Description) ->
 
 %Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
--spec targetAction(#room_proc{}, #action{}) -> {'ok' | 'error', atom()}.
+-spec targetAction(#room_proc{}, #action{}) -> 'ok' | {'error', atom() | tuple()}.
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
@@ -40,7 +40,7 @@ targetAction(Room_Proc, Action) ->
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
 %sends it to player in the form of #action{}
 %returns the result from player OR {error, {why, who}}
--spec targetInput(#room_proc{}, #action{})-> {'ok' | 'error', atom()}.
+-spec targetInput(#room_proc{}, #action{})-> 'ok' | {'error', atom() | tuple()}.
 targetInput(Room_Proc, Input) when Input#action.type == input->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
@@ -123,7 +123,7 @@ s_targetAction(Room, Action) ->
 				%if it didn't error, assume it's an event, and propagate it
 				Event		-> 
 					propagateEvent(Room, Event),
-					{ok, Event}
+					ok
 			end; %end handle handle action
 			false		-> {error, {notInRoom, directObject}}
 		end %end search for DI
@@ -142,9 +142,9 @@ s_targetInput(Room, Input) ->
 	DObject = hrThingToThing(Room, DObjectString),
 		case DObject of
 			{error, Reason} -> {error, {Reason, directObject}};
-						%should be in consistent form of /{[ok OR error}, [Reason]}
-			_		-> case player:targetInput(Subject, {Verb, Subject, DObject})
-		end;
+						%should be in consistent form of 'ok' | {'error', Reason}
+			_		->	player:performAction(Subject, make_action(Verb, Subject, Object), 100) %no idea what the timeout should be.
+		end.
 -spec(#room{}, thing_type()) -> #room{}.
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | AllThings]}
