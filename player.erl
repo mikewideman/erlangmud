@@ -49,27 +49,61 @@
 
 %%% Just a different approach here, don't worry
 
--spec start(string(), non_neg_integer(), pos_integer(), pid()) -> pid().
+-spec start ( Name      :: string()
+            , Health    :: non_neg_integer() | 'default'
+            , Attack    :: pos_integer() | 'default'
+            , Room      :: pid()) -> pid().
 %% @doc Spawn a new player process, initializing it with the given name, health,
-%% and room (in which it is located). Returns the player pid.
+%% and room (in which it is located). The health and attack may be set to the
+%% default values if desired. Returns the player pid.
+%%
+%% @see make_character/4
 %% @end
 start(Name, Health, Attack, Room) ->
     Player = make_character(Name, Health, Attack, Room),
     spawn(fun() -> main(Player) end).
 
--spec main(#character{}) -> no_return().
+-spec main(Player :: #character{}) -> no_return().
 %% @doc The main function of a Player. Loops forever so long as the Player does
 %% not die.
 %% @end
 main(Player) when Player#character.health > 0 ->
     {CurrRoomPid, _CurrRoomId, _CurrRoomDesc} = Player#character.room,
     NewPlayer = receive
-        %% @todo differentiate between events and actions, guard on contents
         Action when is_record(Action, action) ->
             % got a command to perform an action
             Verb = Action#action.verb,
             Subject = Action#action.subject,
             Object = Action#action.object,
+            %% @todo may want to send a payload, e.g. attack damage; see below
+            % ActionToSend = case Verb of
+                % attack ->
+                    % #action { verb = Verb
+                            % , subject = Subject
+                            % , object = Object,
+                            % , payload = [{damage, Player#character.attack}]
+                            % };
+                % enter ->
+                    % Action;
+                % _Other ->
+                    % Action
+            % end,
+            % Response = room:targetAction(CurrRoomPid, ActionToSend),
+            % case Response of
+                % % each case in this block needs to return the NewPlayer
+                % {error, {notInRoom, subject}} ->
+                    % % this player is not in the room which told the player to
+                    % % perform this action
+                    % %% @todo
+                    % Player;
+                % {error, {notInRoom, directObject}} ->
+                    % % the object of the action is not in the room which told
+                    % % the player to perform this action
+                    % %% @todo
+                    % Player;
+                % _Other ->
+                    % Player
+            % end;
             Response = room:targetAction(CurrRoomPid, Action),
             case Verb of
                 % each case in this block needs to return the NewPlayer
@@ -80,34 +114,43 @@ main(Player) when Player#character.health > 0 ->
                 enter ->
                     % got a command to perform enter action
                     %% @todo handle response
-                    Player
+                    Player;
                 % look ->
                     % % got a command to perform look action
                     % Response = Room:look(CurrRoomPid),
                     % %% @todo handle response, which is a list of Things
                     % Player
+                _Other ->
+                    Player
             end;
         Event when is_record(Event, event) -> %% @todo define event record
             % notified of a game event
             Participle = Event#event.participle,
-            %% @todo identify other parts of events
-            %% @todo notify user of event (if someone else isn't doing that)
+            Subject = Event#event.subject,
+            Object = Event#event.object,
+            %% @todo may want to receive a payload, e.g. damage taken
+            % Payload = Event#event.payload,
+            % %% @todo notify user of event (if someone else isn't doing that)
             case Participle of
                 % each case in this block needs to return the NewPlayer
-                attacked ->
+                attacked when Subject#character_proc.pid == self() ->
                     % notified of attacked event
-                    %% @todo differentiate between you being attacked and someone else being attacked
-                    %% @todo decide what DamageTaken would be in the event record
+                    %% @todo decide how to get DamageTaken
+                    % %% @todo consider a #payload or #payload_value record
+                    % {damage, DamageTaken} = lists:keysearch(damage, 1, Payload),
                     HealthRemaining = Player#character.health - DamageTaken,
                     if  HealthRemaining > 0 ->
                             Player#character{health = HealthRemaining};
                         HealthRemaining =< 0 ->
                             Player#character{health = 0}
                     end;
-                entered ->
+                entered when Subject#character_proc.pid == self() ->
                     % notified of entered event
-                    %% @todo decide what NewRoom would be in the event record
-                    Player#character{room = NewRoom}
+                    % in this case, the Object is the NewRoom.
+                    % would not need a payload
+                    Player#character{room = Object};
+                _Other ->
+                    Player
             end
     after 0 ->
         Player
@@ -126,40 +169,51 @@ main(Player) when Player#character.health == 0 ->
     %% @todo do anything else we might want here
     exit({died, Player}).
 
--spec performAction(#character_proc{}, #action{}) -> any().
+-spec performAction ( Player_Proc   :: #character_proc{}
+                    , Action        :: #action{}
+                    , Timeout       :: timeout()) -> any().
 %% @doc Tell a Player to perform an Action.
+%%
+%% @see room:targetAction/2
 %% @end
-performAction(Player_Proc, Action) ->
+performAction(Player_Proc, Action, Timeout) ->
     % is the room going to turn the incoming message into an #action{}, or is
     % it up to the player to do so?
     Player_Proc#character_proc.pid ! Action,
     % is the process calling this function actually concerned with a return?
     receive
         Any -> Any
-    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+    after Timeout ->
         timeout
     end.
 
--spec receiveEventNotification(#character_proc, #event) -> any().
+-spec receiveEventNotification  ( Player_Proc   :: #character_proc
+                                , Event         :: #event
+                                , Timeout       :: timeout()) -> any().
 %% @doc Notify the Player of a game event.
+%%
+%% @see room:broadcast/2
 %% @end
-receiveEventNotification(Player_Proc, Event) ->
+%% @todo consider naming
+receiveEventNotification(Player_Proc, Event, Timeout) ->
     Player_Proc#character_proc.pid ! Event,
     % is the process calling this function actually concerned with a return?
     receive
         Any -> Any
-    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+    after Timeout ->
         timeout
     end.
 
--spec notifyRoomOfDeath(#room_proc, #character_proc) -> any().
+-spec notifyRoomOfDeath ( Room_Proc     :: #room_proc
+                        , Player_Proc   :: #character_proc
+                        , Timeout       :: timeout()) -> any().
 %% @doc Tell the Room you are in that you have died.
 %% @end
-notifyRoomOfDeath(Room_Proc, Player_Proc) ->
+notifyRoomOfDeath(Room_Proc, Player_Proc, Timeout) ->
     room:broadcast(Room_Proc, {died, Player_Proc}),
     % is the process calling this function actually concerned with a return?
     receive
         Any -> Any
-    after 0 ->  %% @todo choose a timeout amount or use a timeout argument
+    after Timeout ->
         timeout
     end.

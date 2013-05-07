@@ -49,12 +49,11 @@
     , name              :: string()
     }).
 
--spec make_character( string()
-                    , non_neg_integer() | 'default'
-                    , pos_integer() | 'default'
-                    , room_t()
-                    ) -> 
-    #character{}.
+-spec make_character( Name      :: string()
+                    , Health    :: non_neg_integer() | 'default'
+                    , Attack    :: pos_integer() | 'default'
+                    , Room      :: room_t()
+                    ) -> #character{}.
 %% @doc Create a new character with no inventory. If the default values for
 %% health or attack are desired, use the atom 'default' for their arguments.
 %% Returns the new character.

@@ -100,11 +100,11 @@ s_targetAction(Room, Action) ->
 	SubjectPid = Action#action.subject,
 	DObjectPid = Action#action.object,
 	%first make sure the subject is in the room
-	case lists:keysearch(SubjectPid, 1, Room#room.things) of %% the character_t keeps the pid in its first index
+	case lists:keysearch(SubjectPid, #room.things, Room#room.things) of %% #room.things is the index of the things variable
 		false	->	{error, {notInRoom, subject}};
 		{value, _Subject} ->
 		%search for the direct object in the room, and send it the action
-		case lists:keysearch(DObjectPid, 1, Room#room.things) of
+		case lists:keysearch(DObjectPid, #room.things, Room#room.things) of
 			%the direct object exists. Send it the action.
 			{value, Thing} -> case thing:handleAction(Thing, Action) of
 				%if it errored, return the error

@@ -49,7 +49,7 @@
     , description           :: string()
     }).
 
--spec make_room(string()) -> #room{}.
+-spec make_room(Description :: string()) -> #room{}.
 %% @doc Create a new room with no linked rooms and nothing in it. Returns the
 %% created room.
 %% @end
