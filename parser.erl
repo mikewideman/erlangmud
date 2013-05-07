@@ -22,4 +22,7 @@ doParse( [Verb, Object] ) ->
 	{Verb, Object};
 
 doParse( [Verb, DObj, "with", IObj] ) ->
-	{Verb, DObj, IObj}.
+	{Verb, DObj, IObj};
+
+doParse( _ ) ->
+	{error, "InvalidCommandForm"}.

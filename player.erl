@@ -171,16 +171,15 @@ main(Player) when Player#character.health == 0 ->
 
 -spec performAction ( Player_Proc   :: #character_proc{}
                     , Action        :: #action{}
-                    , Timeout       :: timeout()) -> any().
+                    , Timeout       :: timeout()) -> 'ok' | {'error', atom() | tuple()}.
 %% @doc Tell a Player to perform an Action.
 %%
 %% @see room:targetAction/2
 %% @end
 performAction(Player_Proc, Action, Timeout) ->
-    % is the room going to turn the incoming message into an #action{}, or is
-    % it up to the player to do so?
     Player_Proc#character_proc.pid ! Action,
     % is the process calling this function actually concerned with a return?
+    % yes, valid or invalid, see spec above ^^
     receive
         Any -> Any
     after Timeout ->
