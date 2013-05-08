@@ -108,7 +108,7 @@
 %% @doc Create an action structure given the parts of the sentence which form
 %% it.
 %% @end
-make_action(Verb, Subject, Object) ->
+make_action(Verb, Subject, Object, Payload) ->
     #action { verb = Verb
             , subject = Subject
             , object = Object
@@ -122,7 +122,7 @@ make_action(Verb, Subject, Object) ->
                     ) -> #event{}.
 %% @doc Create an event structure given the parts of the sentence which form it.
 %% @end
-make_event(Participle, Subject, Object) ->
+make_event(Participle, Subject, Object, Payload) ->
     #event  { participle = Participle
             , subject = Subject
             , object = Object
