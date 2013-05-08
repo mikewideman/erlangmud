@@ -59,9 +59,12 @@ look(Room_Proc) ->
 %Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
 %I'm using the event format {event, BY, VERB, ON, WITH}
 %we should handel hr message text somewhere else
--spec broadcast(#room_proc{}, #action{}) -> any().
-broadcast(Room_Proc, Event) when Event#action.type == event->
-	Room_Proc#room_proc.pid ! {self(), broadcast, Event}.
+-spec broadcast ( Room_Proc     :: #room_proc{}
+                , Event         :: #event{}
+                , Excluded      :: #character_proc{}
+                ) -> any().
+broadcast(Room_Proc, Event, Excluded) ->
+	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
 
 %add a thing to the room (enter it, spawn it, whatever you want to call it). 
 %an event will be propagated
@@ -91,8 +94,8 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 		{Sender, look}		->
 			Sender ! Room#room.things, % @todo turn into game event or something
 			main(Room);
-		{_, broadcast, Event} ->
-			propagateEvent(Room, Event),
+		{_, broadcast, Event, Excluded} ->
+			propagateEvent(Room, Event, Excluded),
 			main(Room);
 		{Sender, targetInput, Input} ->
 			Sender ! s_targetInput(Room, Input),
