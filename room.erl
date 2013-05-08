@@ -33,12 +33,14 @@ start(Description) ->
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
 -spec targetAction  ( Room_Proc :: #room_proc{}
                     , Action    :: #action{}
-                    ) ->  {'ok', #action{}} %% Positive ACK
-                        | {
-                        | {'error', term()} .
+                    ) ->      {'ok', #action{}}     %% Positive ACK
+                            | {'error', term()}.    %% Negative ACK
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
-	receive_response().
+	receive
+        Response -> Response
+    %% @todo timeout
+    end.
 %Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
 %(IE it converts Input to Action)
 %Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
@@ -82,9 +84,10 @@ receive_response() ->
 main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
     %% @todo modify Room and main with 'NewRoom' or something of that sort
 	receive
-		{Sender, targetAction, Action} when is_record(Action, action) -> 
-			Sender ! s_targetAction(Room, Action),
-			main(Room);
+		{Sender, targetAction, Action} when is_record(Action, action) ->
+            {NewRoom, Message} = s_targetAction(Room, Action),
+			Sender ! Message,
+			main(NewRoom);
 		{Sender, look}		->
 			Sender ! Room#room.things, % @todo turn into game event or something
 			main(Room);
@@ -100,50 +103,77 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	end.
 
 %%%SERVER FUNCTIONS
+-spec s_targetAction    ( Room :: #room{}
+                        , Action :: #action{}
+                        ) ->      {#room{}, {'ok', #action{}}
+                                | {#room{}, {'error', term()}.
+%% @doc Validate the Action and turn it into an Event, and notify every thing
+%% in the room that the Event occurred. Acknowledge the validity of the Action
+%% to the character that caused it as well.
+%% @end
 s_targetAction(Room, Action) ->
-	% Subject = Action#action.subject,
-	% Object = Action#action.object,
-	%% Check for Subject
-    %% Assumes the subject is a character
+	%% Check for Subject's presence in room.
+    %% @todo Update if subjects are capable of not being characters.
     TheSubject = lists:keyfind  ( Action#action.subject#character_proc.id
                                 , #character_proc.id
                                 , Room#room.things),
 	case TheSubject of
 		false ->
-            {error, {notInRoom, Subject}};
+            %% Subject not in room.
+            %% Check if Object is this room, this means character is entering.
+            if is_record(Action#action.object, #room_proc)
+            andalso Action#action.object#room_proc.id == Room#room.id ->
+                %% Subject is trying to enter this room.
+                Event = actionToEvent(Action),
+                propogateEvent(Room, Event, Action#action.subject),
+                { Room#room{things = [Action#action.subject | things]}
+                , {ok, Action}}
+            if not is_record(Action#action.object, #room_proc) ->
+                %% Object is not a room and Subject is not in this room.
+                {Room, {error, {notInRoom, TheSubject}}}
+            end;
 		Subject ->
-            {Key, Index} = case Action#action.object of
-                Object when is_record(Object, character_proc) ->
-                    {Object#character_proc.id, #character_proc.id};
-                Object when is_record(Object, room_proc) ->
-                    {Object#room_proc.id, #room_proc.id}
-            end,
-            %% Check for Object
-            %% Does not assume the object is a character
-            TheObject = lists:keyfind   ( Key
-                                        , Index
-                                        , Room#room.things),
-            case TheObject of
-                false ->
-                    {error, {notInRoom, Object}};
-                Object ->
-                    %% @todo notify object directly
-                    %% @todo broadcast to others
-                    case thing:handleAction(Thing, Action) of
-                        %if it errored, return the error
-                        {error, Reason} ->
-                            {error, Reason};
-                        %if it didn't error, assume it's an event, and propagate it
-                        Event -> 
-                            case Event#event.participle of
-                                attacked ->
-                                    propagateEvent(Room, Event)
-                                % read ->
-                                    % nope
-                            end,
-                            {ok, Action}
-                    end; %end handle handle action
-		end %end search for DI
+            %% Subject is in room.
+            %% Check whether Object is a character or a room.
+            if is_record(Action#action.object, character_proc) ->
+                %% Object is a character.
+                %% Check for Object's presence in room.
+                TheObject = lists:keyfind   ( Action#action.object#character_proc.id
+                                            , #character_proc.id
+                                            , Room#room.things),
+                case TheObject of
+                    false ->
+                        {Room, {error, {notInRoom, Object}}};
+                    Object ->
+                        Event = actionToEvent(Action),
+                        Propogate = fun(Thing) ->
+                            if Thing /= Object ->
+                                player:receiveEventNotification(Object, Event);
+                            if Thing == Object ->
+                                skip
+                            end
+                        end,
+                        lists:foreach(Propogate, Room#room.things),
+                        {Room, {ok, Action}}
+                end
+            if is_record(Action#action.object, room_proc) ->
+                %% Object is a room. Character is trying to enter another room.
+                %% @todo Update if other actions besides enter can be done to rooms.
+                %% Check for matching door in room.
+                if Action#action.object == Room#room.north_door
+                orelse Action#action.object == Room#room.east_door
+                orelse Action#action.object == Room#room.south_door
+                orelse Action#action.object == Room#room.west_door ->
+                    %% Door is in room. Tell next room that player is entering.
+                    room:targetAction(Object, Action),
+                if Action#action.object /= Room#room.north_door
+                andalso Action#action.object /= Room#room.east_door
+                andalso Action#action.object /= Room#room.south_door
+                andalso Action#action.object /= Room#room.west_door ->
+                %% @todo LYSE says to do this long stuff, but if true would be shorter...
+                    %% Door is not in room.
+                    {Room, {error, {notInRoom, Object}}}
+            end
 	end.
 
 %Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
@@ -168,8 +198,22 @@ s_addThing(Room, Thing) ->
 	propagateEvent(Room, {enter, Thing}),
 	NewRoom.
 %%%HELPER%%%
-propagateEvent(Room, Event) ->
-	lists:foreach(fun(Thing) -> thing:receiveEvent(Thing, Event) end, Room#room.things).
+-spec propogateEvent    ( Room          :: #room_proc{}
+                        , Event         :: #event{}
+                        , Excluded      :: #character_proc{}
+                        ) -> 'ok'.
+%% @doc Notify every Thing in the room that Event has occurred, except for the
+%% Excluded thing which caused the Event.
+%% @end
+propagateEvent(Room, Event, Excluded) ->
+    Propogate = fun(Thing, ExcludedThing) ->
+        if Thing /= ExcludedThing ->
+            player:receiveEventNotification(Thing, Event);
+        if Thing == ExcludedThing ->
+            skip
+        end
+    end,
+    lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things).
 %get a thing in the room by its name. 
 %possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 hrThingToThing(Room, ThingString) ->
@@ -185,4 +229,17 @@ hrThingToThing(Room, ThingString) ->
 		[Thing | _Cdr] 	-> Thing %hey, looky here. Found your thing!
 	end.
 
-
+-spec actionToEvent(Action :: #action{}) -> #event{}).
+%% @doc Convert an action to an event.
+%% @end
+actionToEvent(Action) ->
+    Participle = case Action#action.verb of
+        attack -> attacked;
+        enter -> entered
+        %% @todo add more as more verbs are added
+    end,
+    make_event  ( Participle
+                , Action#action.subject
+                , Action#action.object
+                , Action#action.payload
+                ).
