@@ -109,7 +109,8 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
                                 | {#room{}, {'error', term()}.
 %% @doc Validate the Action and turn it into an Event, and notify every thing
 %% in the room that the Event occurred. Acknowledge the validity of the Action
-%% to the character that caused it as well.
+%% to the character that caused it as well. If necessary, update the state
+%% of the room. Return the room state and the acknowledgement message.
 %% @end
 s_targetAction(Room, Action) ->
 	%% Check for Subject's presence in room.
@@ -198,6 +199,7 @@ s_addThing(Room, Thing) ->
 	propagateEvent(Room, {enter, Thing}),
 	NewRoom.
 %%%HELPER%%%
+
 -spec propogateEvent    ( Room          :: #room_proc{}
                         , Event         :: #event{}
                         , Excluded      :: #character_proc{}
@@ -214,6 +216,7 @@ propagateEvent(Room, Event, Excluded) ->
         end
     end,
     lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things).
+    
 %get a thing in the room by its name. 
 %possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 hrThingToThing(Room, ThingString) ->
