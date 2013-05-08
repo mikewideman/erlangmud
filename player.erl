@@ -73,14 +73,15 @@ main(Player) when Player#character.health > 0 ->
                     Action
             end,
             Response = room:targetAction(CurrRoomPid, ActionToSend),
+            {Subject, Object} = {ActionToSend#action.subject, ActionToSend#action.object},
             case Response of
                 % @todo each case in this block needs to return the NewPlayer
-                {error, {notInRoom, ActionToSend#action.subject}} ->
+                {error, {notInRoom, Subject}} ->
                     %% This player is not in the room which told the player to
                     %% perform this action.
                     %% @todo Any need to change state?
                     Player;
-                {error, {notInRoom, ActionToSend#action.object}} ->
+                {error, {notInRoom, Object}} ->
                     %% The object of the action is not in the room which told
                     %% the player to perform this action.
                     % if is_record(ActionToSend#action.object, room_proc) ->
