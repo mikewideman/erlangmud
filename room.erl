@@ -11,8 +11,29 @@
 
 -module(room).
 -export([start/1, targetAction/2, look/1, targetInput/2, broadcast/2, addThing/2]).
--include("room.hrl").
--include("action.hrl").
+-include("defs.hrl").
+
+%%%%%%%%%%%%%
+%%% Types %%%
+%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%
+%%% Records %%%
+%%%%%%%%%%%%%%%
+
+-record(room,
+    { id = make_ref()       :: reference()
+    , description           :: string()
+    , things = []           :: list(#character_proc{})  %% @todo #item_proc{}
+    , north_door = none     :: pid() | 'none'           %% @todo room types?
+    , east_door = none      :: pid() | 'none'
+    , south_door = none     :: pid() | 'none'
+    , west_door = none      :: pid() | 'none'
+    }).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Public functions %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -spec start(string()) -> pid().
 %% @doc Spawn a new room process, initializing it with a given Description.
@@ -20,7 +41,7 @@
 %% @todo what else will this function do?
 %% @end
 start(Description) ->
-    Room = make_room(Description),
+    Room = #room{description = Description},
     % @todo link rooms, add content to rooms
     spawn(fun() -> main(Room) end).
 
@@ -105,7 +126,10 @@ main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
 	after 0 -> main(Room)
 	end.
 
-%%%SERVER FUNCTIONS
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Private functions %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
 -spec s_targetAction    ( Room :: #room{}
                         , Action :: #action{}
                         ) ->      {#room{}, {'ok', #action{}}
@@ -245,8 +269,8 @@ actionToEvent(Action) ->
         enter -> entered
         %% @todo add more as more verbs are added
     end,
-    make_event  ( Participle
-                , Action#action.subject
-                , Action#action.object
-                , Action#action.payload
-                ).
+    #event  { participle = Participle
+            , Action#action.subject
+            , Action#action.object
+            , Action#action.payload
+            ).

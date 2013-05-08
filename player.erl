@@ -6,48 +6,28 @@
 
 -module(player).
 -export([start/1, performAction/2, recieveEventNotification/2]).
--include("character.hrl").
--include("room.hrl").
--include("action.hrl").
+-include("defs.hrl").
 
-% start(Name) -> 
-	% Player = spawn(player, play, [self(), Name]),
-	% register(player, Player),
-	% io:format("started the thread: ~p", [Player]).
+%%%%%%%%%%%%%
+%%% Types %%%
+%%%%%%%%%%%%%
 
-% play(Pid, Name) -> play(Pid, Name, 0).
+%%%%%%%%%%%%%%%
+%%% Records %%%
+%%%%%%%%%%%%%%%
 
-% play(Pid, Name, Curr_room) ->
-	% receive 
-		% {Pid, move} ->
-			% io:format("~p is moving...", [Pid])
-			
-        % %{Start_room, player_command, {Action}} ->
-		
-            % % would Action have already been a completely parsed command which
-            % % we know to be valid, or do we validate whether we can perform
-            % % the command the user sent? e.g. if user says drop sword,
-            % % but we don't have a sword, who figures this out, the Room or the
-            % % Player?
-        % %    {Results} = room:receiveAction(self(), Start_room, {Action},
-        % %    
-        % %    NewPlayerRecord = case {Results} of
-        % %        {died} ->
-        % %            {Pid, "I'm dead", Start_room};
-        % %        {entered, NewRoom} ->
-        % %            {Pid, Name, NewRoom};
-        % %        _ ->
-        % %            {Pid, Name, Start_room}
-        % %    end
-	% end,
-	
-    % % have play take the player record as its argument
-	% play(Pid, Name, Curr_room).
+-record(character,
+    { id                :: reference()
+    , name              :: string()
+    , health = 1        :: non_neg_integer()
+    , attack = 1        :: pos_integer()
+    , inventory = []    :: list()               % @todo: define item type
+    , room              :: #room_proc{}
+    }).
 
-% status() -> self().
-
-
-%%% Just a different approach here, don't worry
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Public functions %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -spec start ( Name      :: string()
             , Health    :: non_neg_integer() | 'default'
@@ -227,17 +207,19 @@ receiveEventNotification(Player_Proc, Event) ->
         % timeout
     % end.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Private functions %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%
+
 -spec notifyRoomOfDeath ( Room_Proc     :: #room_proc
                         , Player_Proc   :: #character_proc
                         ) -> any().
 %% @doc Tell the Room you are in that you have died.
 %% @end
 notifyRoomOfDeath(Room_Proc, Player_Proc) ->
-    Event = make_event(died, Player_Proc, Room_Proc, []),
+    Event = #event  { participle = died
+                    , Player_Proc
+                    , Room_Proc
+                    , []
+                    ),
     room:broadcast(Room_Proc, Event, Player_Proc).
-    % is the process calling this function actually concerned with a return?
-    % receive
-        % Any -> Any
-    % after Timeout ->
-        % timeout
-    % end.
