@@ -125,15 +125,15 @@ main(Player) when Player#character.health > 0 ->
             end;
         Event when is_record(Event, event) -> %% @todo define event record
             % notified of a game event
-            Participle = Event#event.participle,
+            Verb = Event#event.verb,
             Subject = Event#event.subject,
             Object = Event#event.object,
             %% @todo may want to receive a payload, e.g. damage taken
             % Payload = Event#event.payload,
             % %% @todo notify user of event (if someone else isn't doing that)
-            case Participle of
+            case Verb of
                 % each case in this block needs to return the NewPlayer
-                attacked when Subject#character_proc.pid == self() ->
+                attack when Subject#character_proc.pid == self() ->
                     % notified of attacked event
                     %% @todo decide how to get DamageTaken
                     % %% @todo consider a #payload or #payload_value record
@@ -144,7 +144,7 @@ main(Player) when Player#character.health > 0 ->
                         HealthRemaining =< 0 ->
                             Player#character{health = 0}
                     end;
-                entered when Subject#character_proc.pid == self() ->
+                enter when Subject#character_proc.pid == self() ->
                     % notified of entered event
                     % in this case, the Object is the NewRoom.
                     % would not need a payload
