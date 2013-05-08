@@ -99,6 +99,11 @@ main(Player) when Player#character.health > 0 ->
                 {error, {notInRoom, ActionToSend#action.object}} ->
                     % the object of the action is not in the room which told
                     % the player to perform this action
+                    if is_record(ActionToSend#action.object, room_proc) ->
+                        %% An enter failed.
+                    if not is_record(ActionToSend#action.object, room_proc) ->
+                        %% Some other action failed.
+                    end,
                     %% @todo
                     Player;
                 {ok, ActionToSend} ->
