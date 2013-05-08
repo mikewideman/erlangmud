@@ -22,7 +22,6 @@ inputloop(Pid) ->
 	Pid ! parser:parse(String),
 	inputloop(Pid).
 	
-
 start() ->
 	Outpid = spawn( ui, outputloop, [] ),
 	inputloop(Outpid).
