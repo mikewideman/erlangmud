@@ -37,6 +37,7 @@
 -type payload_value() ::
       {'damage', Damage :: non_neg_integer()}   %% DamageTaken or DamageDone
     | {atom(), any()}
+    .
 %% payload_value() is a special kind of tuple which is made of an atomic
 %% tag which describes the data and the data itself.
 
@@ -45,15 +46,15 @@
 %%%%%%%%%%%%%%%
 
 -record(character_proc,
-    { pid          :: pid()
-    , id           :: reference()
-    , name         :: string()
+    { pid           :: pid()
+    , id            :: reference()
+    , name          :: string()
     }).
 
 -record(room_proc,
-    { pid          :: pid()
-    , id           :: reference()
-    , description  :: string()
+    { pid           :: pid()
+    , id            :: reference()
+    , description   :: string()
     }).
 
 -record(action,
@@ -63,7 +64,7 @@
     , payload = []  :: list(payload_value())
     }).
 
--record(event
+-record(event,
     { participle    :: participle()
     , subject       :: #character_proc{}
     , object        :: #character_proc{} | #room_proc{} %% @todo | #item_proc{}
