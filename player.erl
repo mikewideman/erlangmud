@@ -5,7 +5,7 @@
 %%%=============================================================================
 
 -module(player).
--export([start/1, performAction/2, recieveEventNotification/2]).
+-export([start/4, performAction/2, receiveEventNotification/2]).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
@@ -17,7 +17,7 @@
 %%%%%%%%%%%%%%%
 
 -record(character,
-    { id                :: reference()
+    { id = make_ref()   :: reference()
     , name              :: string()
     , health = 1        :: non_neg_integer()
     , attack = 1        :: pos_integer()
@@ -41,7 +41,11 @@
 %% @see make_character/4
 %% @end
 start(Name, Health, Attack, Room) ->
-    Player = make_character(Name, Health, Attack, Room),
+    Player = #character { name = Name
+                        , health = Health
+                        , attack = Attack
+                        , room = Room
+                        },
     spawn(fun() -> main(Player) end).
 
 -spec main  ( Player :: #character{}
@@ -89,7 +93,7 @@ main(Player) when Player#character.health > 0 ->
                 {ok, ActionToSend} ->
                     % the action was successful
                     %% @todo
-                    NewPlayer = case ActionToSend#action.verb of
+                    case ActionToSend#action.verb of
                         attack ->
                             %% Attack succeeded.
                             %% @todo Any need to change state?
@@ -97,11 +101,11 @@ main(Player) when Player#character.health > 0 ->
                         enter ->
                             %% Successfully entered new room.
                             Player#character{room = ActionToSend#action.object};
-                        _Other ->
+                        _Verb ->
                             %% Some other successful action.
                             Player
                     end;
-                _Other ->
+                _Response ->
                     Player
             end;
             % Response = room:targetAction(CurrRoomPid, Action),
@@ -136,25 +140,25 @@ main(Player) when Player#character.health > 0 ->
             % Payload = Event#event.payload,
             % %% @todo notify user of event (if someone else isn't doing that)
             case Event#event.participle of
-                attacked when Object#character_proc.pid == self() ->
+                attacked when Event#event.object#character_proc.pid == self() ->
                     %% Notified of attack event.
                     % %% @todo decide how to get DamageTaken
                     % %% @todo consider a #payload or #payload_value record
-                    {damage, DamageTaken} = lists:keysearch(damage, 1, Payload),
+                    {damage, DamageTaken} = lists:keysearch(damage, 1, Event#event.payload),
                     HealthRemaining = Player#character.health - DamageTaken,
                     if  HealthRemaining > 0 ->
                             Player#character{health = HealthRemaining};
                         HealthRemaining =< 0 ->
                             Player#character{health = 0}
                     end;
-                entered when Subject#character_proc.pid == self() ->
+                entered when Event#event.subject#character_proc.pid == self() ->
                     %% Notified of entered event.
-                    Player#character{room = Object};
-                died when Subject#character_proc.pid /= self() ->
+                    Player#character{room = Event#event.object};
+                died when Event#event.subject#character_proc.pid /= self() ->
                     %% Notified of died event.
                     %% @todo Any need to change state?
                     Player;
-                _Other ->
+                _Participle ->
                     Player
             end
     after 0 ->
@@ -190,8 +194,8 @@ performAction(Player_Proc, Action) ->
         % timeout
     % end.
 
--spec receiveEventNotification  ( Player_Proc   :: #character_proc
-                                , Event         :: #event
+-spec receiveEventNotification  ( Player_Proc   :: #character_proc{}
+                                , Event         :: #event{}
                                 ) -> any().
 %% @doc Notify the Player of a game event. The Player may send an action in
 %% response to this event, or it may ignore it.
@@ -211,15 +215,15 @@ receiveEventNotification(Player_Proc, Event) ->
 %%% Private functions %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec notifyRoomOfDeath ( Room_Proc     :: #room_proc
-                        , Player_Proc   :: #character_proc
+-spec notifyRoomOfDeath ( Room_Proc     :: #room_proc{}
+                        , Player_Proc   :: #character_proc{}
                         ) -> any().
 %% @doc Tell the Room you are in that you have died.
 %% @end
 notifyRoomOfDeath(Room_Proc, Player_Proc) ->
     Event = #event  { participle = died
-                    , Player_Proc
-                    , Room_Proc
-                    , []
-                    ),
+                    , subject = Player_Proc
+                    , object = Room_Proc
+                    , payload = []
+                    },
     room:broadcast(Room_Proc, Event, Player_Proc).
