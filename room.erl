@@ -174,6 +174,7 @@ s_targetAction(Room, Action) ->
                 %% @todo LYSE says to do this long stuff, but if true would be shorter...
                     %% Door is not in room.
                     {Room, {error, {notInRoom, Object}}}
+                end
             end
 	end.
 
