@@ -9,20 +9,15 @@
 -module(parser).
 -export( [ parse/1 ] ).
 
-parse(String) ->
-	doParse( string:tokens( string:to_lower(String), " " ) ).
-
-doParse( [] ) ->
-	{error, "EmptyCommand"};
-
-doParse( [Verb] ) ->
-	{Verb};
-
-doParse( [Verb, Object] ) ->
-	{Verb, Object};
-
-doParse( [Verb, DObj, "with", IObj] ) ->
-	{Verb, DObj, IObj};
-
-doParse( _ ) ->
-	{error, "InvalidCommandForm"}.
+parse(Input) ->
+	case string:strip(Input) of
+		"" -> {error, empty};
+		Other -> {ok, doParse(Input)}
+	end.
+doParse(Input) ->
+	case string:str(Input, " ") of
+		%just a verb
+		0 -> {list_to_atom(string:strip(Input))};
+		%verb and object
+		Pos -> {string:strip(string:sub_string(Input, 1, Pos)), string:strip(string:sub_string(Input, Pos))}
+	end.

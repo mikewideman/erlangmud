@@ -78,6 +78,11 @@
     % , type = action         :: 'action' | 'input' | 'event'
     }).
 
+-record(input,
+    { verb                  :: verb() 
+    , player               :: #character_proc{}
+    , object                :: #character_proc{} | #room_proc{}
+    }).
 %% @doc The formal event structure. Represented as the parts of a sentence
 %% which indicate an event, e.g. "skeleton attacked you" / "you were attacked
 %% by skeleton", or "(character) entered room".
