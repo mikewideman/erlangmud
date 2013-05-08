@@ -91,14 +91,18 @@ main(Player) when Player#character.health > 0 ->
             Response = room:targetAction(CurrRoomPid, ActionToSend),
             case Response of
                 % each case in this block needs to return the NewPlayer
-                {error, {notInRoom, subject}} ->
+                {error, {notInRoom, ActionToSend#action.subject}} ->
                     % this player is not in the room which told the player to
                     % perform this action
                     %% @todo
                     Player;
-                {error, {notInRoom, directObject}} ->
+                {error, {notInRoom, ActionToSend#action.object}} ->
                     % the object of the action is not in the room which told
                     % the player to perform this action
+                    %% @todo
+                    Player;
+                {ok, ActionToSend} ->
+                    % the action was successful
                     %% @todo
                     Player;
                 _Other ->
