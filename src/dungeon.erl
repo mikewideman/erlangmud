@@ -55,7 +55,8 @@ dungeon_loop(Rooms, Connections) ->
 			case Result of
 				{ok, NewConnections} 	-> dungeon_loop(Rooms, NewConnections);
 				{error, _Message}		-> io:format("Warning: Dungeon state may be inconsistent."),
-										   dungeon_loop(Rooms, Connections);
+										   dungeon_loop(Rooms, Connections)
+			end;
 		{Username, Verb, Object, Payload} ->
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
 			Input = #input{verb=Verb, subject=PlayerProc, object=Object, payload=Payload},
@@ -70,7 +71,7 @@ dungeon_loop(Rooms, Connections) ->
 % Update the dungeon's concept of which room a player
 % is currently in.
 move_player(Connections, PlayerProc, RoomProc) ->
-	Username = PlayerProc#character.name,
+	Username = PlayerProc#character_proc.name,
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};
