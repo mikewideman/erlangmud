@@ -42,7 +42,7 @@
     }).
 
 -record(event,
-    { verb()    :: verb()
+    { verb    :: verb()
     , subject       :: #character_proc{}
     , object        :: #character_proc{} | #room_proc{} %% @todo | #item_proc{}
     , payload = []  :: list(payload_value())
