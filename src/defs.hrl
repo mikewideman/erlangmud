@@ -11,6 +11,10 @@
 -type verb() :: atom().
 %% verb() is an atom which is recognized as a valid verb in a command sentence
 %% issued by the user or by character actions in general. In other words, verbs
+%% are the valid "kinds" of actions, although it is possible to union other atoms
+%% with verb() in function specs to make other "kinds" of actions admissible in
+%% certain contexts.
+
 -type payload_value() ::
       {'damage', Damage :: non_neg_integer()}   %% DamageTaken or DamageDone
     | {atom(), any()}
@@ -41,8 +45,15 @@
     , payload = []  :: list(payload_value())
     }).
 
+-record(input,
+    { verb          :: verb()
+    , subject       :: #character_proc{}
+    , object        :: string()
+    , payload = []  :: list(payload_value())
+    }).
+
 -record(event,
-    { verb()    :: verb()
+    { verb    :: verb()
     , subject       :: #character_proc{}
     , object        :: #character_proc{} | #room_proc{} %% @todo | #item_proc{}
     , payload = []  :: list(payload_value())

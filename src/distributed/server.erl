@@ -1,5 +1,5 @@
 -module(server).
--export([start/0, start/2, stop/1, loop/1]).
+-export([start/0, loop/1]).
 
 start() ->
     ServerPid = spawn(server, loop, [ [] ]),
