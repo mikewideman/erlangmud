@@ -276,7 +276,7 @@ s_leaveGame(Room, Player)  ->
 
 -spec propagateEvent    ( Room          :: #room_proc{}
                         , Event         :: #event{}
-                        , Excluded      :: #character_proc{}
+                        , Excluded      :: #character_proc{} | 'none'
                         ) -> any().
 %% @doc Notify every Thing in the room that Event has occurred, except for the
 %% Excluded thing which caused the Event. Notify the dungeon of the event

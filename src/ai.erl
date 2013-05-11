@@ -37,8 +37,10 @@
 
 
 start(Name, Health, Attack, Room) ->
-	Enemy = spawn(ai, loop, [ Name, Health, Attack, Room, []]),
-	Room ! Enemy.
+	Pid = spawn(ai, loop, [ Name, Health, Attack, Room, []]),
+	Name = "Evil Dude",
+	#character_proc{pid=Pid, name=Name}.
+	
 %%% Creates an Hostile NPC and sends it back to the room	
 	
 -spec loop ( Name      :: string()
@@ -53,7 +55,7 @@ loop(Name, Health, Attack, Room, []) ->
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
 		enter -> loop2(Name, Health, Attack, Room, [Event#event.subject]);
-		Any -> loop(Name, Health, Attack, Room, [])
+		_Any -> loop(Name, Health, Attack, Room, [])
 	end
 end.
 
@@ -67,7 +69,8 @@ loop2(Name, Health, Attack, Room, [H|T]) ->
 	after 
 		2500 ->
 		Room ! #action { verb = attack
-						, subject = self()
+						% @todo Need to put ID here which  I can't get until npc record is used
+						, subject = #character_proc{name=Name, pid=self()}
 						, object = H
 						, payload =[{damage, Attack}]
 						}, loop2(Name, Health, Attack, Room, Players)
