@@ -33,6 +33,7 @@
             , Health    :: non_neg_integer() | 'default'
             , Attack    :: pos_integer() | 'default'
             , Room      :: pid()
+			, Room_proc :: #room_proc{}
             ) -> pid().
 
 
@@ -47,10 +48,11 @@ start(Name, Health, Attack, Room) ->
             , Health    :: non_neg_integer() | 'default'
             , Attack    :: pos_integer() | 'default'
             , Room      :: pid()
+			,Room_proc  :: room_proc
 			, Lerst		:: list()
 			) -> any().
 	
-loop(Name, Health, Attack, Room, []) ->
+loop(Name, Health, Attack, Room, Room_proc,[]) ->
 	receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
@@ -59,13 +61,17 @@ loop(Name, Health, Attack, Room, []) ->
 	end
 end.
 
-loop2(Name, Health, Attack, Room, [H|T]) ->
+loop2(Name, Health, Attack, Room, Room_proc, [H|T]) ->
 	Players =  T ++ [H],
+	Hth = Health,
+	Subject = #character_proc{pid = self()},
+	Evernt= #event{verb = die, subject = Subject},
 	receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
-		enter -> Players =  T ++ [Event#event.subject] ++ [H]
-	end
+			enter -> Players =  T ++ [Event#event.subject] ++ [H];
+			attack -> Hth = Health - element(2, Event#event.payload)
+		end
 	after 
 		2500 ->
 		Room ! #action { verb = attack
@@ -73,10 +79,13 @@ loop2(Name, Health, Attack, Room, [H|T]) ->
 						, subject = #character_proc{name=Name, pid=self()}
 						, object = H
 						, payload =[{damage, Attack}]
-						}, loop2(Name, Health, Attack, Room, Players)
-						
-					
-				end.
+						}, 
+		if 
+		Hth > 0 ->loop2(Name, Hth, Attack, Room, Room_proc, Players);
+		Hth =< 0 ->				
+			room:broadcast(Room_proc, Evernt, #character_proc{pid = self()}) 
+				end
+			end.
 
 		
 	
