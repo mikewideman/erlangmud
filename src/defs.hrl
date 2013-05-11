@@ -41,6 +41,13 @@
     , payload = []  :: list(payload_value())
     }).
 
+-record(input,
+    { verb          :: verb()
+    , subject       :: string()
+    , object        :: string()
+    , payload = []  :: list(payload_value())
+    }).
+
 -record(event,
     { verb    :: verb()
     , subject       :: #character_proc{}
