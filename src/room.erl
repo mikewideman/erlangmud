@@ -58,10 +58,6 @@ start(Description) ->
                 , id = Room#room.id
                 , description = Description}.
 
-%functions
-%% @todo change to fit action() type
-%%-spec targetAction(pid(), boolean(), action()) -> any().
-
 %Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
 %on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
 -spec targetAction  ( Room_Proc :: #room_proc{}
@@ -107,7 +103,9 @@ addThing(Room_Proc, Thing) ->
 	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
 	ok.
 
--spec leaveGame(Room_Proc :: #room_proc{}, Player :: #character_proc{}) -> {'error', atom()} | 'ok'.
+-spec leaveGame ( Room_Proc :: #room_proc{}
+                , Player :: #character_proc{}
+                ) -> {'error', atom()} | 'ok'.
 leaveGame(Room_Proc, Player) ->
 	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
 	receive_response().
@@ -125,8 +123,7 @@ receive_response() ->
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
 %% @end
-main(Room) ->   % @todo consider that we will need to talk to the dungeon pid
-    %% @todo modify Room and main with 'NewRoom' or something of that sort
+main(Room) ->
 	receive
 		{Sender, targetAction, Action} when is_record(Action, action) ->
             {NewRoom, Message} = s_targetAction(Room, Action),
@@ -225,7 +222,6 @@ s_targetAction(Room, Action) ->
                 andalso Action#action.object /= Room#room.east_door
                 andalso Action#action.object /= Room#room.south_door
                 andalso Action#action.object /= Room#room.west_door ->
-                %% @todo LYSE says to do this long stuff, but if true would be shorter...
                     %% Door is not in room.
                     {Room, {error, {notInRoom, Action#action.object}}}
                 end
