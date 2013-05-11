@@ -58,12 +58,17 @@ start(Description) ->
                 , id = Room#room.id
                 , description = Description}.
 
-%Target an action to the action's direct object. Sends it to thing:handleAction which returns an event. If successful, the event is propagated by sending it to thing:receiveEvent.
-%on failure, returns {error, Reason} where Reason can be {notInRoom, What} where What is directObject or subject. Or Reason can be something from the Thing, or whatever other errors  might come up. Maybe there should be an error() type?
 -spec targetAction  ( Room_Proc :: #room_proc{}
                     , Action    :: #action{}
                     ) ->      {'ok', #action{}}     %% Positive ACK
                             | {'error', term()}.    %% Negative ACK
+%% @doc Target an action to the action's direct object. If the action is valid,
+%% an Event will be propagated to everything in the room and an ok message will
+%% be returned. If not, an error message will be returned.
+%%
+%% @see player:performAction/2
+%% @see player:receiveEventNotification/2
+%% @end
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
@@ -71,17 +76,17 @@ targetAction(Room_Proc, Action) ->
 -spec targetInput   ( Room :: #room_proc{}
                     , Input :: #input{}
                     ) -> 'ok' | {'error', atom() | tuple()}.
-%Targets input to a person from the user, converting the direct object's name from a hr string to a thing type in the process.
-%(IE it converts Input to Action)
-%Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
-%sends it to player in the form of #action{}
-%returns the result from player OR {error, {why, who}}
+%% @doc Transform user input into a command which represents an Action. Sends
+%% the Action to the player in order for it to perform the Action.
+%% @see player:performAction/2
+%% @end
 targetInput(Room_Proc, Input) ->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
 
 -spec look(Room_Proc :: #room_proc{}) -> list(thing()).
-%get a list of all the things in the room
+%% @doc Get a list of all the things in the room.
+%% @end
 look(Room_Proc) ->
 	Room_Proc#room_proc.pid ! {self(), look},
 	receive_response().
@@ -90,14 +95,16 @@ look(Room_Proc) ->
                 , Event         :: #event{}
                 , Excluded      :: #character_proc{}
                 ) -> any().
-%Send everyone an arbitrary message using thing:receiveEvent (should be an event, if our defined format made any sense.) No return value.
-%I'm using the event format {event, BY, VERB, ON, WITH}
-%we should handel hr message text somewhere else
+%% @doc Broadcast the occurrence of an event to everything in the room.
+%% @see player:receiveEventNotification/2
+%% @end
 broadcast(Room_Proc, Event, Excluded) ->
 	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
 
-%add a thing to the room (enter it, spawn it, whatever you want to call it). 
-%an event will be propagated
+%% @doc Add a thing to the room. Propagate the occurrence of this event to
+%% everything in the room.
+%% @see player:receiveEventNotification/2
+%% @end
 -spec addThing(Room_Proc :: #room_proc{}, Thing :: thing()) -> 'ok'.
 addThing(Room_Proc, Thing) ->
 	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
@@ -106,19 +113,12 @@ addThing(Room_Proc, Thing) ->
 -spec leaveGame ( Room_Proc :: #room_proc{}
                 , Player :: #character_proc{}
                 ) -> {'error', atom()} | 'ok'.
+%% @doc Notify the room that a player has left the game.
+%% @see player:receiveEventNotification/2
+%% @end
 leaveGame(Room_Proc, Player) ->
 	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
 	receive_response().
-
--spec receive_response() -> 'timeout' | any().
-%wait for an incoming message and return it as a return value
-%TODO: maybe check that it was the response we were expecting?
-receive_response() ->
-	receive
-		Any -> Any
-	after 0 ->
-		timeout
-	end.
 
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
@@ -231,12 +231,11 @@ s_targetAction(Room, Action) ->
 -spec s_targetInput ( Room :: #room_proc{}
                     , Input :: #input{}
                     ) -> {'error', {term(), 'directObject'}} | none().
-%Targets input to a player from the user, converting the direct object's name from a hr string to a thing type in the process.
-%(IE it converts Input to Action)
-%Input in the form {Verb :: verb(), Subject :: pid(), DObject :: string()} 
-%% Isn't that an action? ^
-%sends it to player in the form of #action{}
-%returns the result from player OR {error, {why, who}}
+%% @doc Targets input to a player from the user, converting the direct object's
+%% name from a hr string to a thing type in the process.
+%% (IE it converts Input to Action)
+%% sends it to player in the form of #action{}
+%% @end
 s_targetInput(Room, Input) ->
 	Verb = Input#input.verb,
 	Subject = Input#input.subject,
@@ -252,6 +251,8 @@ s_targetInput(Room, Input) ->
     end.
         
 -spec s_addThing(Room :: #room{}, Thing :: thing()) -> #room{}.
+%% @doc Add a thing to the room. Propagate this as an event.
+%% @end
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | Room#room.things]},
 	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=self(), id=Room#room.id, description=Room#room.description}}, Thing),
@@ -260,6 +261,8 @@ s_addThing(Room, Thing) ->
 -spec s_leaveGame   ( Room :: #room{}
                     , Player :: #character_proc{}
                     ) -> {error, notInRoom} | {ok, #room{}}.
+%% @doc Remove the leaving player from the room. Propogate this as an event.
+%% @end
 s_leaveGame(Room, Player)  -> 
 	case lists:keysearch(Player, #room.things, Room#room.things) of 
 		false -> {error, notInRoom};
@@ -295,8 +298,9 @@ propagateEvent(Room, Event, Excluded) ->
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
                                 | thing().
-%get a thing in the room by its name. 
-%possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
+%% @doc Get a thing in the room by its name.
+%% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
+%% @end
 hrThingToThing(Room, ThingString) ->
 	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
 	N = string:strip(string:to_lower(ThingString)),
@@ -319,3 +323,14 @@ actionToEvent(Action) ->
 		object=Action#action.object,
 		payload=Action#action.payload
 		}.
+
+-spec receive_response() -> 'timeout' | any().
+%% @doc Wait for an incoming message and return it as a return value.
+%% TODO: maybe check that it was the response we were expecting?
+%% @end
+receive_response() ->
+	receive
+		Any -> Any
+	after 0 ->
+		timeout
+	end.
