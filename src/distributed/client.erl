@@ -1,17 +1,33 @@
 -module(client).
-%-import(net_kernel).
--export([startConnection/1, start/1, loop/1]).
+-export([startConnection/1, connect/1, loop/1, sendMessage/1]).
 
-start(Node) ->
-    spawn(client, startConnection, [Node]).
+connect(Server) ->
+    ClientPid = spawn(client, startConnection, [Server]),
+    register(client, ClientPid),
+    {ok, ClientPid}.
+    
+startConnection(Server) ->
+    Success = net_kernel:connect_node(Server),
+    case Success of
+	true -> 
+	    loop([{server, Server}]),
+	    {ok};
+	_ -> 
+	    {fail, "Unable to connect to server " ++ Server}
+    end.
 
-startConnection(Node) ->
-    net_kernel:connect_node(Node),
-    loop({Node}).
+sendMessage(_Message) ->
+    client ! {send_message, _Message}.
 
-loop(State) ->
+% The client process state has the form [{server, ServerNode}]
+% where {server, ServerNode} represents the server address to send
+% messages to
+loop([ServerAddr]) ->
     receive
-	Anything ->
-	    io:format("~p~n", [Anything]),
-	    loop(State)
+	{send_message, _Message} ->
+	    ServerAddr ! {self(), _Message},
+	    loop([ServerAddr]);
+	_Anything ->
+	    io:format("Received message: ~p~n", [_Anything]),
+	    loop([ServerAddr])
     end.

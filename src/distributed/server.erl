@@ -1,23 +1,17 @@
 -module(server).
--behaviour(application).
--export([start/2, stop/1, loop/1]).
+-export([start/0, start/2, stop/1, loop/1]).
 
-start(StartType, StartArgs) ->
-    serverPid = spawn(server, loop, [StartArgs]),
-    register(server, serverPid),
-    {ok, serverPid, []}.
-
-    % TODO: Remove
-    %register(server, self()),    
-   
-% TODO: Figure out if anything more needs to happen here
-stop(State) ->
-    {ok}.
+start() ->
+    ServerPid = spawn(server, loop, [ [] ]),
+    register(server, ServerPid),
+    {ok, ServerPid}.
 
 loop(State) ->
     receive 
-	{Source, _Anything} -> 
-	    Source ! _Anything,
+	{Source, Anything} -> 
+	    %Source ! _Anything,
+	    io:format("Received message: ~p from ~p~n", [Anything, Source]),
+	    Source ! "Hi there! " ++ Anything,
 	    loop(State)
     end.
 	    
