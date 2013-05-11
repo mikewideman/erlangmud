@@ -37,8 +37,8 @@
             ) -> pid().
 
 
-start(Name, Health, Attack, Room) ->
-	Pid = spawn(ai, loop, [ Name, Health, Attack, Room, []]),
+start(Name, Health, Attack, Room, Room_proc) ->
+	Pid = spawn(ai, loop, [ Name, Health, Attack, Room, Room_proc, []]),
 	Name = "Evil Dude",
 	#character_proc{pid=Pid, name=Name}.
 	
@@ -56,8 +56,8 @@ loop(Name, Health, Attack, Room, Room_proc,[]) ->
 	receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
-		enter -> loop2(Name, Health, Attack, Room, [Event#event.subject]);
-		_Any -> loop(Name, Health, Attack, Room, [])
+		enter -> loop2(Name, Health, Attack, Room, Room_proc, [Event#event.subject]);
+		_Any -> loop(Name, Health, Attack, Room, Room_proc, [])
 	end
 end.
 
