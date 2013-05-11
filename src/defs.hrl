@@ -47,7 +47,7 @@
 
 -record(input,
     { verb          :: verb()
-    , subject       :: string()
+    , subject       :: #character_proc{}
     , object        :: string()
     , payload = []  :: list(payload_value())
     }).
