@@ -234,7 +234,7 @@ s_targetInput(Room, Input, Timeout) ->
 -spec(#room{}, thing_type()) -> #room{}.
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | AllThings]}
-	propagateEvent(Room, {enter, Thing}),
+	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=Room#room.pid, id=Room#room.id, description=Room#room.description}),
 	NewRoom.
 s_leaveGame(Room, Player)  -> 
 	case lists:keysearch(Player, #room.things, Room#room.things) of 
