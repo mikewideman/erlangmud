@@ -33,7 +33,7 @@
             , Health    :: non_neg_integer() | 'default'
             , Attack    :: pos_integer() | 'default'
             , Room      :: pid()
-            ) -> pid().
+            ) -> #character_proc{}.
 %% @doc Spawn a new player process, initializing it with the given name, health,
 %% and room (in which it is located). The health and attack may be set to the
 %% default values if desired. Returns the player pid.
@@ -46,7 +46,9 @@ start(Name, Health, Attack, Room) ->
                         , attack = Attack
                         , room = Room
                         },
-    spawn(fun() -> main(Player) end).
+    #character_proc { pid = spawn(fun() -> main(Player) end)
+                    , id = Player#character.id
+                    , name = Name}.
 
 -spec main  ( Player :: #character{}
             ) -> no_return().

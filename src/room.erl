@@ -43,7 +43,7 @@
 %%% Public functions %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec start(string()) -> pid().
+-spec start(string()) -> #room_proc{}.
 %% @doc Spawn a new room process, initializing it with a given Description.
 %% Returns the room pid.
 %% @todo what else will this function do?
@@ -51,7 +51,9 @@
 start(Description) ->
     Room = #room{description = Description},
     % @todo link rooms, add content to rooms
-    spawn(fun() -> main(Room) end).
+    #room_proc  { pid = spawn(fun() -> main(Room) end)
+                , id = Room#room.id
+                , description = Description}.
 
 %functions
 %% @todo change to fit action() type
@@ -251,7 +253,7 @@ s_targetInput(Room, Input) ->
 -spec s_addThing(Room :: #room{}, Thing :: thing()) -> #room{}.
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | Room#room.things]},
-	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=Room#room.pid, id=Room#room.id, description=Room#room.description}, Thing),
+	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=self(), id=Room#room.id, description=Room#room.description}}, Thing),
 	NewRoom.
 
 -spec s_leaveGame   ( Room :: #room{}
