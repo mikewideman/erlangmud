@@ -65,6 +65,7 @@ main(Player) when Player#character.health > 0 ->
                     Damage = {damage, Player#character.attack},
                     Action#action{payload = [Damage]};
                 enter ->
+                    %% Got a command to perform an enter action.
                     %% No need to add payload.
                     Action;
                 _ReceivedVerb ->
