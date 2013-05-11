@@ -177,7 +177,9 @@ s_targetAction(Room, Action) ->
                 Event = actionToEvent(Action),
                 propagateEvent(Room, Event, Action#action.subject),
                 { Room#room{things = [Action#action.subject | things]}
-                , {ok, Action}};
+                , {ok, Action}},
+                %% Update dungeon's knowledge of character location.
+                dungeon ! {characterMoved, {Action#action.subject, Room}};
             not is_record(Action#action.object, room_proc) ->
                 %% Object is not a room and Subject is not in this room.
                 {Room, {error, {notInRoom, TheSubject}}}
