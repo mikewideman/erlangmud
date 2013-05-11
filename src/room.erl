@@ -6,6 +6,9 @@
 %%% for communication between characters and other entities of the game by
 %%% directing messages (e.g. game actions) to the concerned parties, as well as
 %%% the publisher of game event messages which are sent to users.
+%%%
+%%% Each room assumes that the atom 'dungeon' is registered as the pid of the
+%%% dungeon module. @see dungeon
 %%% @end
 %%%=============================================================================
 
@@ -275,9 +278,10 @@ s_leaveGame(Room, Player)  ->
 -spec propagateEvent    ( Room          :: #room_proc{}
                         , Event         :: #event{}
                         , Excluded      :: #character_proc{}
-                        ) -> 'ok'.
+                        ) -> any().
 %% @doc Notify every Thing in the room that Event has occurred, except for the
-%% Excluded thing which caused the Event.
+%% Excluded thing which caused the Event. Notify the dungeon of the event
+%% occurring as well.
 %% @end
 propagateEvent(Room, Event, Excluded) ->
     Propogate = fun(Thing, ExcludedThing) ->
@@ -287,7 +291,8 @@ propagateEvent(Room, Event, Excluded) ->
             skip
         end
     end,
-    lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things).
+    lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things),
+    dungeon ! {event, {Event, Room}}.
 
 -spec hrThingToThing    ( Room :: #room{}
                         , ThingString :: string()
