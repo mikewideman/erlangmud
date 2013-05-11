@@ -3,9 +3,9 @@
 -export([start/2, stop/1, loop/1]).
 
 start(StartType, StartArgs) ->
-    serverPid = spawn(server, loop, [StartArgs]),
-    register(server, serverPid),
-    {ok, serverPid, []}.
+    ServerPid = spawn(server, loop, [StartArgs]),
+    register(server, ServerPid),
+    {ok, ServerPid, []}.
 
     % TODO: Remove
     %register(server, self()),    
