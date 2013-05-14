@@ -12,8 +12,9 @@
 parse(Input) ->
 	case string:strip(Input) of
 		"" -> {error, empty};
-		Other -> {ok, doParse(Input)}
+		_ -> doParse(Input)
 	end.
+	
 doParse(Input) ->
 	case string:str(Input, " ") of
 		%just a verb
