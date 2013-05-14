@@ -19,7 +19,7 @@ startConnection(Server) ->
 sendMessage(_Message) ->
     client ! {send_message, _Message}.
 
-% The client process state has the form [{server, ServerNode}]
+% The client process state has the form: [{server, ServerNode}]
 % where {server, ServerNode} represents the server address to send
 % messages to
 loop([ServerAddr]) ->
