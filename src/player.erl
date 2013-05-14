@@ -5,7 +5,8 @@
 %%%=============================================================================
 
 -module(player).
--export([start/4, performAction/2, receiveEventNotification/2]).
+-extends(thing).
+-export([start/4, performAction/2]).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
@@ -153,16 +154,6 @@ performAction(Player_Proc, Action) ->
     %% @todo Need a return value as to whether the action was supported or not.
     Player_Proc#character_proc.pid ! Action.
 
--spec receiveEventNotification  ( Player_Proc   :: #character_proc{}
-                                , Event         :: #event{}
-                                ) -> any().
-%% @doc Notify the Player of a game event. The Player may send an action in
-%% response to this event, or it may ignore it.
-%% @see room:broadcast/2
-%% @end
-% %% @todo consider naming
-receiveEventNotification(Player_Proc, Event) ->
-    Player_Proc#character_proc.pid ! Event.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Private functions %%%
