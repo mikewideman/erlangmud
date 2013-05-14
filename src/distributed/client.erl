@@ -1,33 +1,33 @@
--module(client).
--export([startConnection/1, connect/1, loop/1, sendMessage/1]).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% UI module
+% Outputs game messages to the console.
+% Also watches for keyboard input, passes
+% to the parser, and sends to the server.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-connect(Server) ->
-    ClientPid = spawn(client, startConnection, [Server]),
-    register(client, ClientPid),
-    {ok, ClientPid}.
-    
-startConnection(Server) ->
-    Success = net_kernel:connect_node(Server),
-    case Success of
-	true -> 
-	    loop([{server, Server}]),
-	    {ok};
-	_ -> 
-	    {fail, "Unable to connect to server " ++ Server}
-    end.
+-module(ui).
+-export( [start/0, outputloop/0, inputloop/2 ] ).
 
-sendMessage(_Message) ->
-    client ! {send_message, _Message}.
 
-% The client process state has the form: [{server, ServerNode}]
-% where {server, ServerNode} represents the server address to send
-% messages to
-loop([ServerAddr]) ->
-    receive
-	{send_message, _Message} ->
-	    ServerAddr ! {self(), _Message},
-	    loop([ServerAddr]);
-	_Anything ->
-	    io:format("Received message: ~p~n", [_Anything]),
-	    loop([ServerAddr])
-    end.
+outputloop() ->
+	receive 
+		{Username, {Verb, DirectObj }}   ->
+			io:fwrite( Verb ),
+			io:fwrite( DirectObj ),
+			outputloop();
+		{Username, {Verb} } ->
+			io:fwrite( Verb ),
+			outputloop()
+	end.
+
+inputloop(Pid, Username) ->
+	String = io:get_line( "$" ),
+	Pid ! { Username, parser:parse(String) },
+	inputloop(Pid, Username).
+
+start() ->
+	Uname = io:get_line( "Enter username:\n$" ),
+	Outpid = spawn( ui, outputloop, [] ),
+	inputloop(Outpid, Uname).
