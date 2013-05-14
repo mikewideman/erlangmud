@@ -12,9 +12,14 @@
 
 
 outputloop() ->
-	receive { X } ->
-		io:fwrite(X),
-		outputloop()
+	receive 
+		{Username, {Verb, DirectObj }}   ->
+			io:fwrite( Verb ),
+			io:fwrite( DirectObj ),
+			outputloop();
+		{Username, {Verb} } ->
+			io:fwrite( Verb ),
+			outputloop()
 	end.
 
 inputloop(Pid, Username) ->
