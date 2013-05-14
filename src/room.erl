@@ -21,7 +21,7 @@
 %%% Types %%%
 %%%%%%%%%%%%%
 
--type thing() ::
+-type thing_proc() ::
       #character_proc{}
     % | #item_proc{}
     .
@@ -35,7 +35,7 @@
 -record(room,
     { id = make_ref()       :: reference()
     , description           :: string()
-    , things = []           :: list(#character_proc{})  %% @todo #item_proc{}
+    , things = []           :: list(thing_proc())  %% @todo #item_proc{}
     , north_door = none     :: pid() | 'none'           %% @todo room types?
     , east_door = none      :: pid() | 'none'
     , south_door = none     :: pid() | 'none'
@@ -67,7 +67,7 @@ start(Description) ->
 %% be returned. If not, an error message will be returned.
 %%
 %% @see player:performAction/2
-%% @see player:receiveEventNotification/2
+%% @see thing:receiveEventNotification/2
 %% @end
 targetAction(Room_Proc, Action) -> 
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
@@ -84,7 +84,7 @@ targetInput(Room_Proc, Input) ->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
 
--spec look(Room_Proc :: #room_proc{}) -> list(thing()).
+-spec look(Room_Proc :: #room_proc{}) -> list(thing_proc()).
 %% @doc Get a list of all the things in the room.
 %% @end
 look(Room_Proc) ->
@@ -96,14 +96,14 @@ look(Room_Proc) ->
                 , Excluded      :: #character_proc{}
                 ) -> any().
 %% @doc Broadcast the occurrence of an event to everything in the room.
-%% @see player:receiveEventNotification/2
+%% @see thing:receiveEventNotification/2
 %% @end
 broadcast(Room_Proc, Event, Excluded) ->
 	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
 
 %% @doc Add a thing to the room. Propagate the occurrence of this event to
 %% everything in the room.
-%% @see player:receiveEventNotification/2
+%% @see thing:receiveEventNotification/2
 %% @end
 -spec addThing(Room_Proc :: #room_proc{}, Thing :: thing()) -> 'ok'.
 addThing(Room_Proc, Thing) ->
@@ -114,7 +114,7 @@ addThing(Room_Proc, Thing) ->
                 , Player :: #character_proc{}
                 ) -> {'error', atom()} | 'ok'.
 %% @doc Notify the room that a player has left the game.
-%% @see player:receiveEventNotification/2
+%% @see thing:receiveEventNotification/2
 %% @end
 leaveGame(Room_Proc, Player) ->
 	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
@@ -200,7 +200,7 @@ s_targetAction(Room, Action) ->
                         Event = actionToEvent(Action),
                         Propogate = fun(Thing) ->
                             if Thing /= Object ->
-                                player:receiveEventNotification(Object, Event);
+                                thing:receiveEventNotification(Object, Event);
                             Thing == Object ->
                                 skip
                             end
@@ -285,7 +285,7 @@ s_leaveGame(Room, Player)  ->
 propagateEvent(Room, Event, Excluded) ->
     Propogate = fun(Thing, ExcludedThing) ->
         if Thing /= ExcludedThing ->
-            player:receiveEventNotification(Thing, Event);
+            thing:receiveEventNotification(Thing, Event);
         Thing == ExcludedThing ->
             skip
         end

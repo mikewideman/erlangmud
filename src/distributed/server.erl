@@ -24,15 +24,14 @@ shutdown() ->
     case Dungeon
 	undefined -> ; % Do nothing -the dungeon process has already stopped
 	_Anything ->
-	    Dungeon ! {shutdown} % TODO: Make sure this message is handled 
-		                 % properly by the dungeon 
+	    Dungeon ! {shutdown}
     end,
 
     Server = whereis(server),
     case Server
 	undefined -> ; % Do nothing -the server process has already stopped
 	_Anything ->
-	    Server ! {shutdown} 
+	    Server ! {shutdown, "Server has shut down"} 
     end.
 
 % The server state has the following form: 
@@ -52,26 +51,38 @@ loop(Dungeon, Clients) ->
 %	    loop(State);
 
 	{client, send_message, SourceUsername, DestUsername, Message} ->
-	    DestPid = getPidForUser(DestUsername, Clients),
-	    DestPid ! {Message, SourceUsername},
-	    loop(Dungeon, Clients);
+	    SourcePid = getPidForUser(SourceUsername, Clients),
+	    case SourcePid of		
+		username_not_found -> 
+		    % Nothing can be done in this case
+		    io:format("Unknown username ~p tried to send '~p' to ~p~n",
+			     SourceUsername, Message, DestUsername),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    DestPid = getPidForUser(DestUsername, Clients),
+		    case DestPid of		
+			username_not_found -> 
+			    SourcePid ! {error, "Could not send message"},
+			    loop(Dungeon, Clients);
+			_Any -> 
+			    DestPid ! {Message, SourceUsername},
+			    loop(Dungeon, Clients)
+		    end
+	    end;
 
 	{client, connect, ClientPid, Username} ->
-	    % TODO: Add ClientPid and Username as a tuple to the list of
-	    %       connected clients (the server state)
-	    %
-	    % TODO: Start player w/ given username on the Dungeon
-	    %
-	    % TODO: Send back acknoledgement or failure message; also make
-	    %       sure that if anything goes wrong (such as if the client
-	    %       process/node dies) after the player has been created in the
-	    %       dungeon that the dungeon is immediately informed and the
-	    %       player is removed from the game and that they are also 
-	    %       removed from the server state (list of connected clients)
 	    Result = connectClient(ClientPid, Username, Clients),
 	    case Result of
-		{ok, UpdatedClients} -> loop(Dungeon, UpdatedClients);
-		_Any -> loop(Dungeon, Clients)					
+		{ok, UpdatedClients} -> 
+		    loop(Dungeon, UpdatedClients);
+		{error, Reason} ->
+		    io:format("Could not connect client ~p because: ~p~n",
+			     ClientPid, Reason),
+		    loop(Dungeon, Clients);
+		_Any -> 
+		    io:format("Could not connect client ~p for unknown reason",
+			     ClientPid),
+		    loop(Dungeon, Clients)					
 	    end;
 
 	{client, disconnect, ClientPid} ->
@@ -85,36 +96,44 @@ loop(Dungeon, Clients) ->
 	% The RequestID is used in order to allow clients to differentiate
 	% between responses to different game actions in case multiple game
 	% action requests are sent from the same client in a short time frame.
-	% The GameAction parameter is assumed to have the form 
-	% {Username, Verb, Object, DirectObject}
-	%
-	% TODO: Determine if DirectObject is optional
-	%
-	% TODO: Make sure that the client is sending properly formatted
-	%       GameActions and that improperly formatted actions are handled
-	%       properly (i.e. an error message is sent back from the dungeon)
+	% The GameAction parameter is assumed to have the correct form.
 	{client, perform_action, ClientPid, _RequestID, GameAction} ->
 	    Dungeon ! GameAction,
 	    loop(Dungeon, Clients);
+	
+	{dungeon, ok, connected, Username} ->
+	    ;
 
-	%%
-	%% TODO: Handle dungeon response messages here
-	%%
+	{dungeon, error, connected, Username, Reason} ->
+	    ;
+	
+	{dungeon, ok, disconnected, Username} ->
+	    ;
+
+	{dungeon, error, disconnected, Username, Reason} ->
+	    ;
+
+	{dungeon, ok, input, Username, GameAction} ->
+	    ;
+		
+	{dungeon, error, input, Username, GameAction} ->
+	    ;
+		
+	{dungeon, ok, Username, Event} ->
+	    ;
 
 	{'EXIT', Pid, Why} ->
 	    case Pid of
 		Dungeon ->
-		    broadcast("The dungeon has collapsed!", Clients),
-		    
 		    % TODO: Try to recover more gracefully
-		    self() ! {shutdown};
+		    self() ! {shutdown, "Dungeon has collapsed!"};
 		_Any ->
 		    UpdatedClients = disconnectClient(Pid, Clients),
 		    loop({Dungeon, UpdatedClients}
 	    end;
 
-	{shutdown} ->
-	    closeConnections(Clients)
+	{shutdown, _Reason} ->
+	    closeConnections(Clients, _Reason)
     end.	  
 
 
@@ -122,37 +141,53 @@ loop(Dungeon, Clients) ->
 
 % Attempts to establish a connection with the client with the given ClientPid.
 % A connection includes linking to the connecting client process and adding a
-% player with the given Username to the dungeon. If that username is already
-% in use the connection will fail. If a connection is successfully established
-% a tuple of the form {ok, UpdatedClients} will be returned where UpdateClients
-% is the passed in Clients list with the new client entry 
-% ({ClientPid, Username}) added; otherwise a tuple of the form {fail, Reason}
-% will be returned where reason is an explaination of why the connection could
-% not be established.
-% 
-% TODO: Implement
+% player with the given Username to the dungeon. If a connection is
+% successfully established a tuple of the form {ok, UpdatedClients} will be 
+% returned where UpdateClients is the passed in Clients list with the new 
+% client entry ({ClientPid, Username}) added; otherwise a tuple of the form 
+% {error, Reason} will be returned where reason is an explaination of why the 
+% connection could not be established.
 connectClient(ClientPid, Username, Clients) ->
-    link(ClientPid),
-    dungeon ! {connected, Username}
+    Success = link(ClientPid),    
+    case Success of
+	true ->
+	    dungeon ! {connected, Username},
+	    {ok, [{ClientPid, Username} | Clients]};
+	_Any ->
+	    {error, "Could not link to the given PID"}
+    end.
 
 disconnectClient(ClientPid, Clients) ->
-    % TODO: Remove the client which died from the list of active
-    % connections and tell the dungeon to remove that client's
-    % player from the game
+    unlink(ClientPid),
+    dungeon ! {disconnected, Username},
+    removeClient(ClientPid, Clients).
 
-% TODO: Implement (send messages to all clients notifying them that the server
-% is shutting down)
-closeConnections(Clients) ->
-    .
+removeClient(ClientPid, []) ->
+    [];
+removeClient(ClientPid, [{ClientPid, _Username} | T]) ->
+    T;
+removeClient(ClientPid, [{_Pid, _Username} | T]) ->
+    [{_Pid, _Username} | removeClient(ClientPid, T)].
 
-getPids(Clients) ->
-    .
+closeConnections([], _Reason) ->
+    ; % Nothing left to do
+closeConnections([{ClientPid, _Username} | T], _Reason) ->
+    unlink(ClientPid),
+    ClientPid ! {disconnected, _Reason}.
 
-getUsernames(Clients) ->
-    .
+getPids([]) ->
+    [];
+getPids([{ClientPid, _Username} | T]) ->
+    [ClientPid | getPids(T)];
 
-getPidForUser(Username, Clients) ->
-    .
+getUsernames([]) ->
+    [];
+getUsernames([{_ClientPid, Username} | T]) ->
+    [Username | getUsernames(T)];
 
-broadcast(Message, Clients) ->
-    .
+getPidForUser(_Username, []) ->
+    username_not_found;
+getPidForUser(Username, [{ClientPid, Username} | T]) ->
+    ClientPid;
+getPidForUser(_Username, [_H | T]) ->
+    getPidForUser(_Username, T).
