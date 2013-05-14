@@ -28,7 +28,10 @@ build_dungeon(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
-		{shutdown} -> io:format("Dungeon is shutting down.~n");
+		{shutdown} ->
+			io:format("Dungeon is shutting down.~n");
+		{status} ->
+			server ! {Rooms, Connections};
 		{connected, Username} -> 
 		    Result = connect_player(Connections, Username, Rooms),
 			case Result of
@@ -71,6 +74,13 @@ dungeon_loop(Rooms, Connections) ->
 			io:format("~p~n", [Any]),
 			dungeon_loop(Rooms, Connections)
 	end.
+
+% propagate_event
+%
+% Push an event up to all the users who were in the room when it occured.
+propagate_event(Connections, RoomProc, Event) ->
+	ConnectionList = dict:to_list(Connections),
+	[server ! {} || {Username, Room} <- ConnectionList, Room == RoomProc].
 
 % move_player
 %
