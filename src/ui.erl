@@ -8,7 +8,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -module(ui).
--export( [start/0, outputloop/0, inputloop/1] ).
+-export( [start/0, outputloop/0, inputloop/2 ] ).
 
 
 outputloop() ->
@@ -17,11 +17,12 @@ outputloop() ->
 		outputloop()
 	end.
 
-inputloop(Pid) ->
+inputloop(Pid, Username) ->
 	String = io:get_line( "$" ),
-	Pid ! parser:parse(String),
-	inputloop(Pid).
-	
+	Pid ! { Username, parser:parse(String) },
+	inputloop(Pid, Username).
+
 start() ->
+	Uname = io:get_line( "Enter username:\n$" ),
 	Outpid = spawn( ui, outputloop, [] ),
-	inputloop(Outpid).
+	inputloop(Outpid, Uname).
