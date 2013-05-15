@@ -89,7 +89,7 @@ propagate_event(Connections, RoomProc, Event) ->
 % Update the dungeon's concept of which room a player
 % is currently in.
 move_player(Connections, PlayerProc, RoomProc) ->
-	Username = PlayerProc#character_proc.name,
+	Username = PlayerProc#thing_proc.name,
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};

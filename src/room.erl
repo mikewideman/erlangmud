@@ -21,12 +21,6 @@
 %%% Types %%%
 %%%%%%%%%%%%%
 
--type thing_proc() ::
-      #character_proc{}
-    % | #item_proc{}
-    .
-%% thing() is a type which represents the sorts of Things which can be inside
-%% a room.
 
 %%%%%%%%%%%%%%%
 %%% Records %%%
@@ -35,7 +29,7 @@
 -record(room,
     { id = make_ref()       :: reference()
     , description           :: string()
-    , things = []           :: list(thing_proc())  %% @todo #item_proc{}
+    , things = []           :: list(#thing_proc{})  %% @todo #item_proc{}
     , north_door = none     :: #room_proc{} | 'none'           %% @todo room types?
     , east_door = none      :: #room_proc{} | 'none'
     , south_door = none     :: #room_proc{} | 'none'
@@ -84,7 +78,7 @@ targetInput(Room_Proc, Input) ->
 	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
 	receive_response().
 
--spec look(Room_Proc :: #room_proc{}) -> list(thing_proc()).
+-spec look(Room_Proc :: #room_proc{}) -> list(#thing_proc{}).
 %% @doc Get a list of all the things in the room.
 %% @end
 look(Room_Proc) ->
@@ -93,7 +87,7 @@ look(Room_Proc) ->
 
 -spec broadcast ( Room_Proc     :: #room_proc{}
                 , Event         :: #event{}
-                , Excluded      :: #character_proc{}
+                , Excluded      :: #thing_proc{}
                 ) -> any().
 %% @doc Broadcast the occurrence of an event to everything in the room.
 %% @see thing:receiveEventNotification/2
@@ -105,13 +99,13 @@ broadcast(Room_Proc, Event, Excluded) ->
 %% everything in the room.
 %% @see thing:receiveEventNotification/2
 %% @end
--spec addThing(Room_Proc :: #room_proc{}, Thing :: thing()) -> 'ok'.
+-spec addThing(Room_Proc :: #room_proc{}, Thing :: #thing_proc{}) -> 'ok'.
 addThing(Room_Proc, Thing) ->
 	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
 	ok.
 
 -spec leaveGame ( Room_Proc :: #room_proc{}
-                , Player :: #character_proc{}
+                , Player :: #thing_proc{}
                 ) -> {'error', atom()} | 'ok'.
 %% @doc Notify the room that a player has left the game.
 %% @see thing:receiveEventNotification/2
@@ -149,7 +143,7 @@ main(Room) ->
 			%not related to a public function
 			%Something I likned to died. Act as if it exited
 			%doesn't return anything, but may propagate an event.
-			case lists:keyfind(Pid, #character_proc.pid, Room#room.things) of
+			case lists:keyfind(Pid, #thing_proc.pid, Room#room.things) of
 				false ->
 					notInRoom;
 				Thing ->
@@ -175,8 +169,8 @@ main(Room) ->
 s_targetAction(Room, Action) ->
 	%% Check for Subject's presence in room.
     %% @todo Update if subjects are capable of not being characters.
-    TheSubject = lists:keyfind  ( Action#action.subject#character_proc.id
-                                , #character_proc.id
+    TheSubject = lists:keyfind  ( Action#action.subject#thing_proc.id
+                                , #thing_proc.id
                                 , Room#room.things),
 	case TheSubject of
 		false ->
@@ -198,11 +192,11 @@ s_targetAction(Room, Action) ->
 		_Subject ->
             %% Subject is in room.
             %% Check whether Object is a character or a room.
-            if is_record(Action#action.object, character_proc) ->
+            if is_record(Action#action.object, thing_proc) ->
                 %% Object is a character.
                 %% Check for Object's presence in room.
-                TheObject = lists:keyfind   ( Action#action.object#character_proc.id
-                                            , #character_proc.id
+                TheObject = lists:keyfind   ( Action#action.object#thing_proc.id
+                                            , #thing_proc.id
                                             , Room#room.things),
                 case TheObject of
                     false ->
@@ -262,17 +256,17 @@ s_targetInput(Room, Input) ->
     end.
         
 % @TODO: Allow things besides characters
--spec s_addThing(Room :: #room{}, Thing :: #character_proc{}) -> #room{}.
+-spec s_addThing(Room :: #room{}, Thing :: #thing_proc{}) -> #room{}.
 %% @doc Add a thing to the room. Propagate this as an event.
 %% @end
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | Room#room.things]},
-	link(Thing#character_proc.pid),
+	link(Thing#thing_proc.pid),
 	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=self(), id=Room#room.id, description=Room#room.description}}, Thing),
 	NewRoom.
 
 -spec s_leaveGame   ( Room :: #room{}
-                    , Player :: #character_proc{}
+                    , Player :: #thing_proc{}
                     ) -> {error, notInRoom} | {ok, #room{}}.
 %% @doc Remove the leaving player from the room. Propogate this as an event.
 %% @end
@@ -289,7 +283,7 @@ s_leaveGame(Room, Player)  ->
 
 -spec propagateEvent    ( Room          :: #room_proc{}
                         , Event         :: #event{}
-                        , Excluded      :: #character_proc{} | 'none'
+                        , Excluded      :: #thing_proc{} | 'none'
                         ) -> any().
 %% @doc Notify every Thing in the room that Event has occurred, except for the
 %% Excluded thing which caused the Event. Notify the dungeon of the event
@@ -310,7 +304,7 @@ propagateEvent(Room, Event, Excluded) ->
                         , ThingString :: string()
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
-                                | thing().
+                                | #thing_proc.
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
