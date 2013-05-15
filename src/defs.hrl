@@ -12,7 +12,8 @@
 %% verb() is an atom which is recognized as a valid verb in a command sentence
 %% issued by the user or by character actions in general. In other words, verbs
 -type payload_value() ::
-      {'damage', Damage :: non_neg_integer()}   %% DamageTaken or DamageDone
+      {'damage', Damage :: pos_integer()}   %% DamageTaken or DamageDone
+    | {'heal', Heal :: pos_integer()}   %% HealAmount or HealthRestored
     | {atom(), any()}
     .
 
