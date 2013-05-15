@@ -34,7 +34,7 @@
             , Health    :: non_neg_integer() | 'default'
             , Attack    :: pos_integer() | 'default'
             , Room      :: pid()
-            ) -> #character_proc{}.
+            ) -> #thing_proc{}.
 %% @doc Spawn a new player process, initializing it with the given name, health,
 %% and room (in which it is located). The health and attack may be set to the
 %% default values if desired. Returns the player pid.
@@ -47,7 +47,7 @@ start(Name, Health, Attack, Room) ->
                         , attack = Attack
                         , room = Room
                         },
-    #character_proc { pid = spawn(fun() -> main(Player) end)
+    #thing_proc { pid = spawn(fun() -> main(Player) end)
                     , id = Player#character.id
                     , name = Name}.
 
@@ -105,7 +105,7 @@ main(Player) when Player#character.health > 0 ->
         Event when is_record(Event, event) ->  
             %% Notified of a game event.
             case Event#event.verb of
-                attack when Event#event.object#character_proc.pid == self() ->
+                attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of an attack event.
                     {damage, DamageTaken} = lists:keysearch(damage, 1, Event#event.payload),
                     HealthRemaining = Player#character.health - DamageTaken,
@@ -114,10 +114,10 @@ main(Player) when Player#character.health > 0 ->
                         HealthRemaining =< 0 ->
                             Player#character{health = 0}
                     end;
-                enter when Event#event.subject#character_proc.pid == self() ->
+                enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#character{room = Event#event.object};
-                died when Event#event.subject#character_proc.pid /= self() ->
+                died when Event#event.subject#thing_proc.pid /= self() ->
                     %% Notified of a died event.
                     %% @todo Any need to change state?
                     Player;
@@ -134,7 +134,7 @@ main(Player) when Player#character.health > 0 ->
 %% @end
 main(Player) when Player#character.health == 0 ->
     notifyRoomOfDeath   ( Player#character.room
-                        , #character_proc   { pid = self()
+                        , #thing_proc   { pid = self()
                                             , id = Player#character.id
                                             , name = Player#character.name
                                             }
@@ -143,7 +143,7 @@ main(Player) when Player#character.health == 0 ->
     %% @todo This exposes the #player{} record, should use proc.
     exit({died, Player}).
 
--spec performAction ( Player_Proc   :: #character_proc{}
+-spec performAction ( Player_Proc   :: #thing_proc{}
                     , Action        :: #action{}
                     ) -> any().
 %% @doc Tell a Player to perform an Action. The incoming Action may be modified
@@ -152,7 +152,7 @@ main(Player) when Player#character.health == 0 ->
 %% @end
 performAction(Player_Proc, Action) ->
     %% @todo Need a return value as to whether the action was supported or not.
-    Player_Proc#character_proc.pid ! Action.
+    Player_Proc#thing_proc.pid ! Action.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,7 +160,7 @@ performAction(Player_Proc, Action) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 -spec notifyRoomOfDeath ( Room_Proc     :: #room_proc{}
-                        , Player_Proc   :: #character_proc{}
+                        , Player_Proc   :: #thing_proc{}
                         ) -> any().
 %% @doc Tell the Room you are in that you have died.
 %% @end

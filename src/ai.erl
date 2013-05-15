@@ -46,7 +46,7 @@ start(Name, Health, Attack, Room_proc) ->
                         },
 	Pid = spawn(ai, loop, [ NPC]),
 	Name = "Evil Dude",
-	#character_proc{pid=Pid, name=Name}.
+	#thing_proc{pid=Pid, name=Name}.
 	
 %%% Creates an Hostile NPC and sends it back to the room	
 	
@@ -71,7 +71,7 @@ loop2(NPC) ->
 	[H | T] =  NPC#npc.pcs,
 	Players = T ++ H,
 	Hth = NPC#npc.health,
-	Subject = #character_proc{pid = self()},
+	Subject = #thing_proc{pid = self()},
 	Room = NPC#npc.room,
 	Evernt= #event{verb = die, subject = Subject},
 	receive
@@ -84,14 +84,14 @@ loop2(NPC) ->
 		2500 ->
 		Room#room_proc.pid ! #action { verb = attack
 						% @todo Need to put ID here which  I can't get until npc record is used
-						, subject = #character_proc{name=NPC#npc.name, pid=self()}
+						, subject = #thing_proc{name=NPC#npc.name, pid=self()}
 						, object = H
 						, payload =[{damage, NPC#npc.attack, NPC}]
 						}, 
 		if 
 		Hth > 0 ->loop2(NPC#npc{ health = Hth, pcs = Players});
 		Hth =< 0 ->				
-			room:broadcast(Room, Evernt, #character_proc{pid = self()}) 
+			room:broadcast(Room, Evernt, #thing_proc{pid = self()}) 
 				end
 			end.
 

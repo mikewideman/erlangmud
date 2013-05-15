@@ -13,7 +13,7 @@
 %%% Records %%%
 %%%%%%%%%%%%%%%
 
--spec receiveEventNotification  ( Player_Proc   :: #character_proc{}
+-spec receiveEventNotification  ( Thing_Proc   :: #thing_proc{}
                                 , Event         :: #event{}
                                 ) -> any().
 %% @doc Notify the Thing of a game event. The Thing may send an action in
@@ -21,5 +21,5 @@
 %% @see room:broadcast/2
 %% @end
 % %% @todo consider naming
-receiveEventNotification(Player_Proc, Event) ->
-    Player_Proc#character_proc.pid ! Event.
+receiveEventNotification(Thing_Proc, Event) ->
+    Thing_Proc#thing_proc.pid ! Event.

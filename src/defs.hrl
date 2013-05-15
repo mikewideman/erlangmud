@@ -21,7 +21,7 @@
 %%% Records %%%
 %%%%%%%%%%%%%%%
 
--record(character_proc,
+-record(thing_proc,
     { pid           :: pid()
     , id            :: reference()
     , name          :: string()
@@ -35,22 +35,22 @@
 
 -record(action,
     { verb          :: verb()
-    , subject       :: #character_proc{}
-    , object        :: #character_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , subject       :: #thing_proc{}
+    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
     , payload = []  :: list(payload_value())
     }).
 
 -record(input,
     { verb          :: verb()
-    , subject       :: #character_proc{}
+    , subject       :: #thing_proc{}
     , object        :: string()
     , payload = []  :: list(payload_value())
     }).
 
 -record(event,
     { verb    :: verb()
-    , subject       :: #character_proc{}
-    , object        :: #character_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , subject       :: #thing_proc{}
+    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
     , payload = []  :: list(payload_value())
     }).
 
@@ -58,7 +58,7 @@
 % Error Definition
 %%%%%%%%%%%%%%%%%%%
 
--type thing() :: #character_proc{}.
+-type thing() :: #thing_proc{}.
 %% payload_value() is a special kind of tuple which is made of an atomic
 %% tag which describes the data and the data itself.
 
