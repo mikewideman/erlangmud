@@ -48,11 +48,10 @@ start(Name, Health, Attack, Room) ->
                         , room = Room
                         },
     #thing_proc { pid = spawn(fun() -> main(Player) end)
-                    , id = Player#pc.id
-                    , name = Name}.
+                , id = Player#pc.id
+                , name = Name}.
 
--spec main  ( Player :: #pc{}
-            ) -> no_return().
+-spec main  ( Player :: #pc{}) -> no_return().
 %% @doc The main function of a Player. Loops forever so long as the Player does
 %% not die.
 %% @end
@@ -146,15 +145,13 @@ main(Player) when Player#pc.health > 0 ->
 %% #player{} record.
 %% @end
 main(Player) when Player#pc.health == 0 ->
-    notifyRoomOfDeath   ( Player#pc.room
-                        , #thing_proc   { pid = self()
-                                            , id = Player#pc.id
-                                            , name = Player#pc.name
-                                            }
-                        ),
+    Player_Proc = #thing_proc   { pid = self()
+                                , id = Player#pc.id
+                                , name = Player#pc.name
+                                },
+    notifyRoomOfDeath(Player#pc.room, Player_Proc),
     %% @todo Need to do anything else before exiting?
-    %% @todo This exposes the #player{} record, should use proc.
-    exit({died, Player}).
+    exit({died, Player_Proc}).
 
 -spec performAction ( Player_Proc   :: #thing_proc{}
                     , Action        :: #action{}
