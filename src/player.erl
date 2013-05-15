@@ -68,6 +68,10 @@ main(Player) when Player#pc.health > 0 ->
                     %% Got a command to perform an enter action.
                     %% No need to add payload.
                     Action;
+                pick_up ->
+                    %% Got a command to perform a pick_up action.
+                    %% No need to add payload.
+                    Action;
                 drink ->
                     %% Got a command to perform a drink action.
                     %% No need to add payload.
