@@ -35,5 +35,11 @@ getUserInfo() ->
 start() ->
 	{Uname, Server} = getUserInfo(),
 	io:format(" Connecting to server ~p ~n", [Server] ),
-	Outpid = spawn( ui, outputloop, [] ),
-	inputloop(Outpid, Uname).
+	Success = clientConnection:startConnection(Server, Uname),
+	case Success of
+	{ok} ->
+		Outpid = spawn( ui, outputloop, [] ),
+		inputloop(Outpid, Uname);
+	_ ->
+		io:format("Could not connect to server")
+	end.
