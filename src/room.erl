@@ -14,7 +14,7 @@
 
 -module(room).
 -export([ start/1, targetAction/2, look/1, targetInput/2, broadcast/3
-        , addThing/2, leaveGame/2 ]).
+        , addThing/2, leaveGame/2, makeDoor/3, removeDoor/3 ]).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
@@ -29,8 +29,8 @@
 -record(room,
     { id = make_ref()       :: reference()
     , description           :: string()
-    , things = []           :: list(#thing_proc{})  %% @todo #item_proc{}
-    , north_door = none     :: #room_proc{} | 'none'           %% @todo room types?
+    , things = []           :: list(#thing_proc{})
+    , north_door = none     :: #room_proc{} | 'none'
     , east_door = none      :: #room_proc{} | 'none'
     , south_door = none     :: #room_proc{} | 'none'
     , west_door = none      :: #room_proc{} | 'none'
@@ -67,7 +67,7 @@ targetAction(Room_Proc, Action) ->
 	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
 	receive_response().
 
--spec targetInput   ( Room :: #room_proc{}
+-spec targetInput   ( Room  :: #room_proc{}
                     , Input :: #input{}
                     ) -> 'ok' | {'error', atom() | tuple()}.
 %% @doc Transform user input into a command which represents an Action. Sends
@@ -104,8 +104,8 @@ addThing(Room_Proc, Thing) ->
 	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
 	ok.
 
--spec leaveGame ( Room_Proc :: #room_proc{}
-                , Player :: #thing_proc{}
+-spec leaveGame ( Room_Proc     :: #room_proc{}
+                , Player        :: #thing_proc{}
                 ) -> {'error', atom()} | 'ok'.
 %% @doc Notify the room that a player has left the game.
 %% @see thing:receiveEventNotification/2
@@ -113,6 +113,26 @@ addThing(Room_Proc, Thing) ->
 leaveGame(Room_Proc, Player) ->
 	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
 	receive_response().
+
+-spec makeDoor  ( Direction :: 'north' | 'east' | 'south' | 'west'
+                , ThisRoom  :: #room_proc{}
+                , OtherRoom :: #room_proc{}
+                ) -> 
+%% @doc Connect a Room to another Room (unidirectionally).
+%% @end
+makeDoor(Direction, ThisRoom, OtherRoom) ->
+    ThisRoom#room_proc.pid ! {self(), makeDoor, Direction, OtherRoom},
+    receive_response().
+    
+-spec removeDoor    ( Direction :: 'north' | 'east' | 'south' | 'west'
+                    , ThisRoom  :: #room_proc{}
+                    , OtherRoom :: #room_proc{}
+                    ) -> 
+%% @doc Remove a Room's connection to another Room (unidirectionally).
+%% @end
+removeDoor(Direction, ThisRoom, OtherRoom) ->
+    ThisRoom#room_proc.pid ! {self(), removeDoor, Direction, OtherRoom},
+    receive_response().
 
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
@@ -139,6 +159,67 @@ main(Room) ->
 				{error, Reason} -> Sender ! {error, Reason}, main(Room);
 				{ok, NewRoom} -> Sender ! ok, main(NewRoom)
 			end;
+        {Sender, makeDoor, Direction, OtherRoom} ->
+            NewRoom = case Direction of
+                north ->
+                    if Room#room.north_door == none ->
+                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
+                        Room#room{north_door = OtherRoom};
+                    Room#room.north_door == OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, doorAlreadyMade}},
+                        Room;
+                    Room#room.north_door /= none
+                    andalso Room#room.north_Door /= OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, otherDoorAlreadyMade}},
+                        Room
+                    end;
+                east ->
+                    if Room#room.east_door == none ->
+                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
+                        Room#room{east_door = OtherRoom};
+                    Room#room.east_door == OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, doorAlreadyMade}},
+                        Room;
+                    Room#room.east_door /= none
+                    andalso Room#room.east_Door /= OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, otherDoorAlreadyMade}},
+                        Room
+                    end;
+                south ->
+                    if Room#room.south_door == none ->
+                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
+                        Room#room{south_door = OtherRoom};
+                    Room#room.south_door == OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, doorAlreadyMade}},
+                        Room;
+                    Room#room.south_door /= none
+                    andalso Room#room.south_Door /= OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, otherDoorAlreadyMade}},
+                        Room
+                    end;
+                west ->
+                    if Room#room.west_door == none ->
+                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
+                        Room#room{west_door = OtherRoom};
+                    Room#room.west_door == OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, doorAlreadyMade}},
+                        Room;
+                    Room#room.west_door /= none
+                    andalso Room#room.west_Door /= OtherRoom ->
+                        Sender ! {error,    { makeDoor, Direction, self()
+                                            , OtherRoom, otherDoorAlreadyMade}},
+                        Room
+                end
+            end,
+            main(NewRoom);
+        %% @todo removeRoom
 		{'EXIT', Pid, _Reason} ->
 			%not related to a public function
 			%Something I likned to died. Act as if it exited
