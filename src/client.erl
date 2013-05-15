@@ -8,18 +8,17 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -module(client).
+-include("defs.hrl").
 -export( [start/0, outputloop/0, inputloop/3 ] ).
 
 
 outputloop() ->
 	receive 
-		{Username, {Verb, DirectObj }}   ->
-			io:fwrite( Verb ),
-			io:fwrite( DirectObj ),
-			outputloop();
-		{Username, {Verb} } ->
-			io:fwrite( Verb ),
-			outputloop()
+	{fail, GameAction} ->
+		io:format(" Your action ~s failed.", [GameAction#action.verb] );
+	{event, Event} ->
+		io:format("New event: \n Verb:~s\nSubject:~s\nObject:~s\n ",
+		  [Event#event.verb, Event#event.subject, Event#event.object])
 	end.
 
 inputloop(Pid, Username, ConnectPid) ->
