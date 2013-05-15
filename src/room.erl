@@ -36,10 +36,10 @@
     { id = make_ref()       :: reference()
     , description           :: string()
     , things = []           :: list(thing_proc())  %% @todo #item_proc{}
-    , north_door = none     :: pid() | 'none'           %% @todo room types?
-    , east_door = none      :: pid() | 'none'
-    , south_door = none     :: pid() | 'none'
-    , west_door = none      :: pid() | 'none'
+    , north_door = none     :: #room_proc{} | 'none'           %% @todo room types?
+    , east_door = none      :: #room_proc{} | 'none'
+    , south_door = none     :: #room_proc{} | 'none'
+    , west_door = none      :: #room_proc{} | 'none'
     }).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -54,7 +54,7 @@
 start(Description) ->
     Room = #room{description = Description},
     % @todo link rooms, add content to rooms
-    #room_proc  { pid = spawn(fun() -> main(Room) end)
+    #room_proc  { pid = spawn_link(fun() -> main(Room), process_flag(trap_exit, true) end)
                 , id = Room#room.id
                 , description = Description}.
 
@@ -144,7 +144,18 @@ main(Room) ->
 			case s_leaveGame(Room, Player) of
 				{error, Reason} -> Sender ! {error, Reason}, main(Room);
 				{ok, NewRoom} -> Sender ! ok, main(NewRoom)
+			end;
+		{'EXIT', Pid, _Reason} ->
+			%not related to a public function
+			%Something I likned to died. Act as if it exited
+			%doesn't return anything, but may propagate an event.
+			case lists:keyfind(Pid, #character_proc.pid, Room#room.things) of
+				false ->
+					notInRoom;
+				Thing ->
+					s_leaveGame(Room, Thing)
 			end
+			
 	after 0 -> main(Room)
 	end.
 
@@ -250,11 +261,13 @@ s_targetInput(Room, Input) ->
             player:performAction(Subject, Action)
     end.
         
--spec s_addThing(Room :: #room{}, Thing :: thing()) -> #room{}.
+% @TODO: Allow things besides characters
+-spec s_addThing(Room :: #room{}, Thing :: #character_proc{}) -> #room{}.
 %% @doc Add a thing to the room. Propagate this as an event.
 %% @end
 s_addThing(Room, Thing) -> 
 	NewRoom = Room#room{things=[Thing | Room#room.things]},
+	link(Thing#character_proc.pid),
 	propagateEvent(Room, #event{verb=enter, subject=Thing, object=#room_proc{pid=self(), id=Room#room.id, description=Room#room.description}}, Thing),
 	NewRoom.
 
