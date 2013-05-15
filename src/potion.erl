@@ -36,9 +36,10 @@ rockloop() ->
 		_Any -> rockloop()
 	end.
 	
+% @todo: the potion never gets used up.
 potionloop()->
 	receive 
-		Event when is_record(Event, event) ->
+		Event when is_record(Event, event) and Event#event.object#thing_proc.pid == self() ->
 			case Event#event.verb of 
 				drink -> thing:receiveEventNotification(Event#event.object, #event{ verb = heal
 																				, subject = Event#event.object
