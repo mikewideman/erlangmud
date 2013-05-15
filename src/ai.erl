@@ -33,58 +33,65 @@
 -spec start ( Name      :: string()
             , Health    :: non_neg_integer() | 'default'
             , Attack    :: pos_integer() | 'default'
-            , Room      :: pid()
 			, Room_proc :: #room_proc{}
             ) -> pid().
 
 
-start(Name, Health, Attack, Room, Room_proc) ->
-	Pid = spawn(ai, loop, [ Name, Health, Attack, Room, Room_proc, []]),
+start(Name, Health, Attack, Room_proc) ->
+ NPC = #npc 			{ name = Name
+                        , health = Health
+                        , attack = Attack
+						, pcs =[]
+                        , room = Room_proc
+                        },
+	Pid = spawn(ai, loop, [ NPC]),
 	Name = "Evil Dude",
 	#character_proc{pid=Pid, name=Name}.
 	
 %%% Creates an Hostile NPC and sends it back to the room	
 	
--spec loop ( Name      :: string()
-            , Health    :: non_neg_integer() | 'default'
-            , Attack    :: pos_integer() | 'default'
-            , Room      :: pid()
-			,Room_proc  :: room_proc
-			, Lerst		:: list()
-			) -> any().
+%%%-spec loop ( Name      :: string()
+ %%%           , Health    :: non_neg_integer() | 'default'
+    %%%        , Attack    :: pos_integer() | 'default'
+    %%%        , Room      :: pid()
+	%%%		,Room_proc  :: room_proc
+	%%%		, Lerst		:: list()
+	%%%		) -> any().
 	
-loop(Name, Health, Attack, Room, Room_proc,[]) ->
+loop(NPC) ->
 	receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
-		enter -> loop2(Name, Health, Attack, Room, Room_proc, [Event#event.subject]);
-		_Any -> loop(Name, Health, Attack, Room, Room_proc, [])
+		enter -> loop2(NPC#npc{pcs = [Event#event.subject]});
+		_Any -> loop(NPC)
 	end
 end.
 
-loop2(Name, Health, Attack, Room, Room_proc, [H|T]) ->
-	Players =  T ++ [H],
-	Hth = Health,
+loop2(NPC) ->
+	[H | T] =  NPC#npc.pcs,
+	Players = T ++ H,
+	Hth = NPC#npc.health,
 	Subject = #character_proc{pid = self()},
+	Room = NPC#npc.room,
 	Evernt= #event{verb = die, subject = Subject},
 	receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
 			enter -> Players =  T ++ [Event#event.subject] ++ [H];
-			attack -> Hth = Health - element(2, Event#event.payload)
+			attack -> Hth = NPC#npc.health - element(2, Event#event.payload)
 		end
 	after 
 		2500 ->
-		Room ! #action { verb = attack
+		Room#room_proc.pid ! #action { verb = attack
 						% @todo Need to put ID here which  I can't get until npc record is used
-						, subject = #character_proc{name=Name, pid=self()}
+						, subject = #character_proc{name=NPC#npc.name, pid=self()}
 						, object = H
-						, payload =[{damage, Attack}]
+						, payload =[{damage, NPC#npc.attack, NPC}]
 						}, 
 		if 
-		Hth > 0 ->loop2(Name, Hth, Attack, Room, Room_proc, Players);
+		Hth > 0 ->loop2(NPC#npc{ health = Hth, pcs = Players});
 		Hth =< 0 ->				
-			room:broadcast(Room_proc, Evernt, #character_proc{pid = self()}) 
+			room:broadcast(Room, Evernt, #character_proc{pid = self()}) 
 				end
 			end.
 
