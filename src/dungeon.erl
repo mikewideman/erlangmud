@@ -64,7 +64,8 @@ dungeon_loop(Rooms, Connections) ->
 		{connected, Username} -> 
 		    Result = connect_player(Connections, Username, Rooms),
 			case Result of
-				{ok, NewConnections} 	-> server ! {dungeon, ok, connected, Username},
+				{ok, NewConnections} 	-> MOTD = get_motd(),
+										   server ! {dungeon, ok, connected, Username, MOTD},
 										   dungeon_loop(Rooms, NewConnections);
 				{error, Message} 		-> server ! {dungeon, error, connected, Username, Message},
 										   dungeon_loop(Rooms, Connections)
@@ -151,7 +152,7 @@ connect_player(Connections, Username, Rooms) ->
 		true -> {error, "Username already in the dungeon."};
 		false ->
 			PlayerRecord = player:start(Username, default, default, StartingRoom),
-			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}),
+			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}, Connections),
 			room:addThing(StartingRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
