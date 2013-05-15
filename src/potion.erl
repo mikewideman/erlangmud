@@ -21,7 +21,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-statrt(Type)->
+start(Type)->
 	case Type of
 		potion -> Pid = spawn(potion, potionloop, []);
 		_Any -> Pid = spawn(potion, rockloop, [])
