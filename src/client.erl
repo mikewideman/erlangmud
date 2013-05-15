@@ -39,6 +39,7 @@ start() ->
 	case Success of
 	{ok, ConnectPid} ->
 		Outpid = spawn( ui, outputloop, [] ),
+		ConnectPid ! {connect_ui, Outpid},
 		inputloop(Outpid, Uname, ConnectPid);
 	_ ->
 		io:format("Could not connect to server")
