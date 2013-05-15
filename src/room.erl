@@ -96,7 +96,7 @@ look(Room_Proc) ->
 %% @see thing:receiveEventNotification/2
 %% @end
 broadcast(Room_Proc, Event, Excluded) ->
-	Room_Proc#room_proc.pid ! {self(), broadcast, Id, Event, Excluded}.
+	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
 
 %% @doc Add a thing to the room. Propagate the occurrence of this event to
 %% everything in the room.
@@ -104,7 +104,7 @@ broadcast(Room_Proc, Event, Excluded) ->
 %% @end
 -spec addThing(Room_Proc :: #room_proc{}, Thing :: #thing_proc{}) -> 'ok'.
 addThing(Room_Proc, Thing) ->
-	Room_Proc#room_proc.pid ! {self(), addThing, Id, Thing},
+	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
 	ok.
 
 -spec leaveGame ( Room_Proc     :: #room_proc{}
@@ -156,13 +156,13 @@ main(Room) ->
 		{Sender, look, Id}		->
 			Sender ! {Id, Room#room.things}, % @todo turn into game event or something
 			main(Room);
-		{_, broadcast, Id, Event, Excluded} ->
+		{_, broadcast, Event, Excluded} ->
 			propagateEvent(Room, Event, Excluded),
 			main(Room);
 		{Sender, targetInput,Id, Input} ->
 			Sender ! {Id, s_targetInput(Room, Input)},
 			main(Room);
-		{_, addThing, Id, Thing} ->
+		{_, addThing, Thing} ->
 			main(s_addThing(Room, Thing));
 		{Sender, leaveGame, Id, Player} ->
 			case s_leaveGame(Room, Player) of
@@ -446,7 +446,7 @@ propagateEvent(Room, Event, Excluded) ->
                         , ThingString :: string()
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
-                                | #thing_proc.
+                                | #thing_proc{}.
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
