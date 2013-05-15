@@ -108,6 +108,7 @@ connect_player(Connections, Username, Rooms) ->
 		false ->
 			PlayerRecord = player:start(Username, default, default, StartingRoom),
 			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}),
+			room:addThing(StartingRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
 
