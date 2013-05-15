@@ -17,7 +17,7 @@
 %%% Records %%%
 %%%%%%%%%%%%%%%
 
--record(character,
+-record(pc,
     { id = make_ref()   :: reference()
     , name              :: string()
     , health = 1        :: non_neg_integer()
@@ -42,29 +42,29 @@
 %% @see make_character/4
 %% @end
 start(Name, Health, Attack, Room) ->
-    Player = #character { name = Name
+    Player = #pc { name = Name
                         , health = Health
                         , attack = Attack
                         , room = Room
                         },
     #thing_proc { pid = spawn(fun() -> main(Player) end)
-                    , id = Player#character.id
+                    , id = Player#pc.id
                     , name = Name}.
 
--spec main  ( Player :: #character{}
+-spec main  ( Player :: #pc{}
             ) -> no_return().
 %% @doc The main function of a Player. Loops forever so long as the Player does
 %% not die.
 %% @end
-main(Player) when Player#character.health > 0 ->
+main(Player) when Player#pc.health > 0 ->
     NewPlayer = receive
         Action when is_record(Action, action) ->
             %% Got a command to perform an action.
             ActionToSend = case Action#action.verb of
                 attack ->
                     %% Got a command to perform an attack action.
-                    Damage = {damage, Player#character.attack},
-                    Action#action{payload = [Damage]};
+                    %% Payload includes damage done.
+                    Action#action{payload = [{damage, Player#pc.attack}]};
                 enter ->
                     %% Got a command to perform an enter action.
                     %% No need to add payload.
@@ -78,7 +78,7 @@ main(Player) when Player#character.health > 0 ->
                     Action
             end,
             {Subject, Object} = {ActionToSend#action.subject, ActionToSend#action.object},
-            case room:targetAction(Player#character.room, ActionToSend) of
+            case room:targetAction(Player#pc.room, ActionToSend) of
                 {error, {notInRoom, Subject}} ->
                     %% This player is not in the room which told the player to
                     %% perform this action.
@@ -99,7 +99,7 @@ main(Player) when Player#character.health > 0 ->
                             Player;
                         enter ->
                             %% Successfully entered new room.
-                            Player#character{room = ActionToSend#action.object};
+                            Player#pc{room = ActionToSend#action.object};
                         _SentVerb ->
                             %% Some other successful action.
                             Player
@@ -113,23 +113,23 @@ main(Player) when Player#character.health > 0 ->
                 attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of an attack event.
                     {damage, DamageTaken} = lists:keysearch(damage, 1, Event#event.payload),
-                    HealthRemaining = Player#character.health - DamageTaken,
+                    HealthRemaining = Player#pc.health - DamageTaken,
                     if  HealthRemaining > 0 ->
-                            Player#character{health = HealthRemaining};
+                            Player#pc{health = HealthRemaining};
                         HealthRemaining =< 0 ->
-                            Player#character{health = 0}
+                            Player#pc{health = 0}
                     end;
                 heal when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a heal event.
                     {heal, HealthRestored} = lists:keysearch(heal, 1, Event#event.payload),
-                    Player#character{health = Player#character.health + HealthRestored};
+                    Player#pc{health = Player#pc.health + HealthRestored};
 				inc_attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a inc_attack event.
                     {inc_attack, Attackinc} = lists:keysearch(inc_attack, 1, Event#event.payload),
-                    Player#character{attack = Player#character.attack + Attackinc};	
+                    Player#pc{attack = Player#pc.attack + Attackinc};	
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
-                    Player#character{room = Event#event.object};
+                    Player#pc{room = Event#event.object};
                 died when Event#event.subject#thing_proc.pid /= self() ->
                     %% Notified of a died event.
                     %% @todo Any need to change state?
@@ -145,11 +145,11 @@ main(Player) when Player#character.health > 0 ->
 %% @doc Player dies and exits with reason {died, Player} where Player is the
 %% #player{} record.
 %% @end
-main(Player) when Player#character.health == 0 ->
-    notifyRoomOfDeath   ( Player#character.room
+main(Player) when Player#pc.health == 0 ->
+    notifyRoomOfDeath   ( Player#pc.room
                         , #thing_proc   { pid = self()
-                                            , id = Player#character.id
-                                            , name = Player#character.name
+                                            , id = Player#pc.id
+                                            , name = Player#pc.name
                                             }
                         ),
     %% @todo Need to do anything else before exiting?
