@@ -171,115 +171,23 @@ main(Room) ->
 			end,
 			main(Rm);
 		{Sender, makeDoor, Id, Direction, OtherRoom} ->
-		    NewRoom = case Direction of
-                north ->
-                    if Room#room.north_door == none ->
-                        Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
-                        Room#room{north_door = OtherRoom};
-                    Room#room.north_door == OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, doorAlreadyMade}}},
-                        Room;
-                    Room#room.north_door /= none
-                    andalso Room#room.north_door /= OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, otherDoorAlreadyMade}}},
-                        Room
-                    end;
-                east ->
-                    if Room#room.east_door == none ->
-                        Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
-                        Room#room{east_door = OtherRoom};
-                    Room#room.east_door == OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, doorAlreadyMade}}},
-                        Room;
-                    Room#room.east_door /= none
-                    andalso Room#room.east_door /= OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, otherDoorAlreadyMade}}},
-                        Room
-                    end;
-                south ->
-                    if Room#room.south_door == none ->
-                        Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
-                        Room#room{south_door = OtherRoom};
-                    Room#room.south_door == OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, doorAlreadyMade}}},
-                        Room;
-                    Room#room.south_door /= none
-                    andalso Room#room.south_door /= OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, otherDoorAlreadyMade}}},
-                        Room
-                    end;
-                west ->
-                    if Room#room.west_door == none ->
-                        Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
-                        Room#room{west_door = OtherRoom};
-                    Room#room.west_door == OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, doorAlreadyMade}}},
-                        Room;
-                    Room#room.west_door /= none
-                    andalso Room#room.west_door /= OtherRoom ->
-                        Sender ! {Id, {error,    { makeDoor, Direction, self()
-                                    , OtherRoom, otherDoorAlreadyMade}}},
-                        Room
-                    end
-		    end,
-		    main(NewRoom);
+		    NewRoom = case s_makeDoor(Direction, Room, OtherRoom) of
+                {error, Reason} ->
+                    Sender ! {Id, {error, Reason}},
+                    Room;
+                {ok, NewRoom1} ->
+                    Sender ! {Id, {ok}},
+                    NewRoom1
+            end,
+            main(NewRoom);
         {Sender, removeDoor, Id, Direction, OtherRoom} ->
-            NewRoom = case Direction of
-                north ->
-                    if Room#room.north_door == OtherRoom ->
-                        Sender ! {Id, {ok}},
-                        Room#room{north_door = OtherRoom};
-                    Room#room.north_door == none ->
-                        Sender ! {Id, {error, noDoorToRemove}},
-                        Room;
-                    Room#room.north_door /= none
-                    andalso Room#room.north_door /= OtherRoom ->
-                        Sender ! {Id, {error, incorrectDoorToRemove}},
-                        Room
-                    end;
-                east ->
-                    if Room#room.east_door == OtherRoom ->
-                        Sender ! {Id, {ok}},
-                        Room#room{east_door = OtherRoom};
-                    Room#room.east_door == none ->
-                        Sender ! {Id, {error, noDoorToRemove}},
-                        Room;
-                    Room#room.east_door /= none
-                    andalso Room#room.east_door /= OtherRoom ->
-                        Sender ! {Id, {error, incorrectDoorToRemove}},
-                        Room
-                    end;
-                south ->
-                    if Room#room.south_door == OtherRoom ->
-                        Sender ! {Id, {ok}},
-                        Room#room{south_door = OtherRoom};
-                    Room#room.south_door == none ->
-                        Sender ! {Id, {error, noDoorToRemove}},
-                        Room;
-                    Room#room.south_door /= none
-                    andalso Room#room.south_door /= OtherRoom ->
-                        Sender ! {Id, {error, incorrectDoorToRemove}},
-                        Room
-                    end;
-                west ->
-                    if Room#room.west_door == OtherRoom ->
-                        Sender ! {Id, {ok}},
-                        Room#room{west_door = OtherRoom};
-                    Room#room.west_door == none ->
-                        Sender ! {Id, {error, noDoorToRemove}},
-                        Room;
-                    Room#room.west_door /= none
-                    andalso Room#room.west_door /= OtherRoom ->
-                        Sender ! {Id, {error, incorrectDoorToRemove}},
-                        Room
-                    end
+            NewRoom = case s_removeDoor(Direction, Room, OtherRoom) of
+                {error, Reason} ->
+                    Sender ! {Id, {error, Reason}},
+                    Room;
+                {ok, NewRoom1} ->
+                    Sender ! {Id, {ok}},
+                    NewRoom1
             end,
             main(NewRoom);
 		{'EXIT', Pid, _Reason} ->
@@ -423,6 +331,99 @@ s_leaveGame(Room, Player)  ->
 			NewRoom = Room#room{things=lists:delete(Elem, Room#room.things)},
 			{ok, NewRoom}
 	end.
+
+-spec s_makeDoor    ( Direction :: 'north' | 'east' | 'south' | 'west'
+                    , ThisRoom  :: #room{}
+                    , OtherRoom :: #room_proc{}
+                    ) -> {ok, #room{}} | {error, doorAlreadyMade | otherDoorAlreadyMade}.
+%% @doc Add a door to another room.
+%% @end
+s_makeDoor(Direction, ThisRoom, OtherRoom) ->
+    case Direction of
+        north ->
+            if ThisRoom#room.north_door == none ->
+                {ok, ThisRoom#room{north_door = OtherRoom}};
+            ThisRoom#room.north_door == OtherRoom ->
+                {error, doorAlreadyMade};
+            ThisRoom#room.north_door /= none
+            andalso ThisRoom#room.north_door /= OtherRoom ->
+                {error, otherDoorAlreadyMade}
+            end;
+        east ->
+            if ThisRoom#room.east_door == none ->
+                {ok, ThisRoom#room{east_door = OtherRoom}};
+            ThisRoom#room.east_door == OtherRoom ->
+                {error, doorAlreadyMade};
+            ThisRoom#room.east_door /= none
+            andalso ThisRoom#room.east_door /= OtherRoom ->
+                {error, otherDoorAlreadyMade}
+            end;
+        south ->
+            if ThisRoom#room.south_door == none ->
+                {ok, ThisRoom#room{south_door = OtherRoom}};
+            ThisRoom#room.south_door == OtherRoom ->
+                {error, doorAlreadyMade};
+            ThisRoom#room.south_door /= none
+            andalso ThisRoom#room.south_door /= OtherRoom ->
+                {error, otherDoorAlreadyMade}
+            end;
+        west ->
+            if ThisRoom#room.west_door == none ->
+                {ok, ThisRoom#room{west_door = OtherRoom}};
+            ThisRoom#room.west_door == OtherRoom ->
+                {error, doorAlreadyMade};
+            ThisRoom#room.west_door /= none
+            andalso ThisRoom#room.west_door /= OtherRoom ->
+                {error, otherDoorAlreadyMade}
+            end
+    end.
+
+-spec s_removeDoor  ( Direction :: 'north' | 'east' | 'south' | 'west'
+                    , ThisRoom  :: #room{}
+                    , OtherRoom :: #room_proc{}
+                    ) -> {ok, #room{}} | {error, noDoorToRemove | incorrectDoorToRemove}.
+%% @doc Remove the door to another room.
+%% @end
+s_removeDoor(Direction, ThisRoom, OtherRoom) ->
+    case Direction of
+        north ->
+            if ThisRoom#room.north_door == OtherRoom ->
+                {ok, ThisRoom#room{north_door = OtherRoom}};
+            ThisRoom#room.north_door == none ->
+                {error, noDoorToRemove};
+            ThisRoom#room.north_door /= none
+            andalso ThisRoom#room.north_door /= OtherRoom ->
+                {error, incorrectDoorToRemove}
+            end;
+        east ->
+            if ThisRoom#room.east_door == OtherRoom ->
+                {ok, ThisRoom#room{east_door = OtherRoom}};
+            ThisRoom#room.east_door == none ->
+                {error, noDoorToRemove};
+            ThisRoom#room.east_door /= none
+            andalso ThisRoom#room.east_door /= OtherRoom ->
+                {error, incorrectDoorToRemove}
+            end;
+        south ->
+            if ThisRoom#room.south_door == OtherRoom ->
+                {ok, ThisRoom#room{south_door = OtherRoom}};
+            ThisRoom#room.south_door == none ->
+                {error, noDoorToRemove};
+            ThisRoom#room.south_door /= none
+            andalso ThisRoom#room.south_door /= OtherRoom ->
+                {error, incorrectDoorToRemove}
+            end;
+        west ->
+            if ThisRoom#room.west_door == OtherRoom ->
+                {ok, ThisRoom#room{west_door = OtherRoom}};
+            ThisRoom#room.west_door == none ->
+                {error, noDoorToRemove};
+            ThisRoom#room.west_door /= none
+            andalso ThisRoom#room.west_door /= OtherRoom ->
+                {error, incorrectDoorToRemove}
+            end
+    end.
+                    
 %%%HELPER%%%
 
 -spec propagateEvent    ( Room          :: #room_proc{}

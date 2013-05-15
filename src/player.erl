@@ -123,6 +123,10 @@ main(Player) when Player#character.health > 0 ->
                     %% Notified of a heal event.
                     {heal, HealthRestored} = lists:keysearch(heal, 1, Event#event.payload),
                     Player#character{health = Player#character.health + HealthRestored};
+				inc_attack when Event#event.object#thing_proc.pid == self() ->
+                    %% Notified of a inc_attack event.
+                    {inc_attack, Attackinc} = lists:keysearch(inc_attack, 1, Event#event.payload),
+                    Player#character{attack = Player#character.attack + Attackinc};	
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#character{room = Event#event.object};

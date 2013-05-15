@@ -48,3 +48,15 @@ potionloop()->
 			end;
 		_Any-> potionloop()
 	end.
+
+weaponloop() -> 	
+		receive 
+		Event when is_record(Event, event) ->
+			case Event#event.verb of 
+				pickup -> thing:receiveEventNotification(Event#event.object, #event{ verb = inc_attack
+																				, subject = Event#event.object
+																				, object = Event#event.subject
+																				, payload = [{inc_attack, 5}]})
+			end;
+		_Any-> potionloop()
+	end.

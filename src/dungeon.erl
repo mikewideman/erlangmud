@@ -151,7 +151,7 @@ connect_player(Connections, Username, Rooms) ->
 		true -> {error, "Username already in the dungeon."};
 		false ->
 			PlayerRecord = player:start(Username, default, default, StartingRoom),
-			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}),
+			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}, Connections),
 			room:addThing(StartingRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
