@@ -64,8 +64,7 @@ dungeon_loop(Rooms, Connections) ->
 		{connected, Username} -> 
 		    Result = connect_player(Connections, Username, Rooms),
 			case Result of
-				{ok, NewConnections} 	-> MOTD = get_motd(),
-										   server ! {dungeon, ok, connected, Username, MOTD},
+				{ok, NewConnections} 	-> server ! {dungeon, ok, connected, Username},
 										   dungeon_loop(Rooms, NewConnections);
 				{error, Message} 		-> server ! {dungeon, error, connected, Username, Message},
 										   dungeon_loop(Rooms, Connections)
