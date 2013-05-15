@@ -21,13 +21,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-statrt(Type)->
+start(Type)->
 	case Type of
-		potion -> Pid = spawn(potion, potionloop, []);
+		potion -> Pid = spawn(potion, potionloop, [])
+			,Proc=#thing_proc{pid=Pid, name="Health Potion"};
 		_Any -> Pid = spawn(potion, rockloop, [])
+			,Proc=#thing_proc{pid=Pid, name="Rock"}
 	end,
-	Name = "Health Potion",
-	#character_proc{pid=Pid, name=Name}.
+	Proc.
 	
 
 rockloop() ->
