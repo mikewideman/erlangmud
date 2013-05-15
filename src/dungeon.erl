@@ -24,10 +24,22 @@ build_dungeon(ConfigFileName) ->
 			{fail, Error}
 	end.		
 
+% merge_dungeon
+%
+% Add additional rooms onto a running dungeon.
 merge_dungeon(ConfigFileName) ->
-	{ok, RoomConf} = file:consult(ConfigFileName),
-	RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-	dungeon ! {merge, RoomProcs}.
+	Result = file:consult(ConfigFileName),
+	case Result of
+			{ok, RoomConf} ->
+				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+				dungeon ! {merge, RoomProcs},
+				{ok, merged};
+			{error, {Line, Mod, Term}} ->
+				Reason = file:format_error({Line, Mod, Term}),
+				{fail, Reason};
+			{error, Error} ->
+				{fail, Error}
+	end.
 
 % dungeon_loop
 %
