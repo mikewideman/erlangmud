@@ -1,5 +1,4 @@
 -module(server).
--import(dungeon, [start/1]).
 -export([start/1, shutdown/0, startLoop/1, loop/2]).
 
 start(_CallbackPid) ->
