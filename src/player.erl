@@ -66,6 +66,11 @@ main(Player) when Player#character.health > 0 ->
                     Damage = {damage, Player#character.attack},
                     Action#action{payload = [Damage]};
                 enter ->
+                    %% Got a command to perform an enter action.
+                    %% No need to add payload.
+                    Action;
+                drink ->
+                    %% Got a command to perform a drink action.
                     %% No need to add payload.
                     Action;
                 _ReceivedVerb ->
@@ -114,6 +119,10 @@ main(Player) when Player#character.health > 0 ->
                         HealthRemaining =< 0 ->
                             Player#character{health = 0}
                     end;
+                heal when Event#event.object#thing_proc.pid == self() ->
+                    %% Notified of a heal event.
+                    {heal, HealthRestored} = lists:keysearch(heal, 1, Event#event.payload),
+                    Player#character{health = Player#character.health + HealthRestored};
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#character{room = Event#event.object};
