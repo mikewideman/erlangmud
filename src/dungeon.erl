@@ -16,6 +16,10 @@ build_dungeon(ConfigFileName) ->
 	register(dungeon, Dungeon),
 	Dungeon.
 
+merge_dungeon(ConfigFileName) ->
+	{ok, RoomConf} = file:consult(ConfigFileName),
+	dungeon ! {amend, RoomList}
+
 % dungeon_loop
 %
 % TODO: Update documentation
@@ -30,6 +34,8 @@ build_dungeon(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
+		{amend, NewRooms} ->
+			dungeon_loop(Rooms ++ NewRooms, Connections);
 		{shutdown} ->
 			io:format("Dungeon is shutting down.~n");
 		{status} ->
@@ -64,6 +70,9 @@ dungeon_loop(Rooms, Connections) ->
 				{error, _Message}		-> io:format("Warning: Dungeon state may be inconsistent."),
 										   dungeon_loop(Rooms, Connections)
 			end;
+		
+		% Propgate input from the client down to the room where the player
+		% is.
 		{Username, Verb, Object} ->
 			server ! {dungeon, ok, input, Username, {Verb, Object}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
@@ -71,10 +80,22 @@ dungeon_loop(Rooms, Connections) ->
 			room:targetInput(RoomProc, Input),
 			% TODO: add error handling
 			dungeon_loop(Rooms, Connections);
+		
+		% black-hole EXIT messages.
+		% The dungeon doesn't care or need to care if any processes die.
+		{'EXIT', _, _} ->
+			dungeon_loop(Rooms, Connections);
+		
+		% catchall for invalid messages from the server
 		{_Username, Any} -> 
 			server ! {dungeon, error, input, Any},
 			io:format("~p~n", [Any]),
-			dungeon_loop(Rooms, Connections)
+			dungeon_loop(Rooms, Connections);
+		
+		% catchall for messages not matching the game protocol.
+		{Any} ->
+			io:format("~p~n", [Any]),
+			dungeon_loop(Rooms, Connections);
 	end.
 
 % propagate_event
@@ -89,7 +110,7 @@ propagate_event(Connections, RoomProc, Event) ->
 % Update the dungeon's concept of which room a player
 % is currently in.
 move_player(Connections, PlayerProc, RoomProc) ->
-	Username = PlayerProc#character_proc.name,
+	Username = PlayerProc#thing_proc.name,
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};
