@@ -27,7 +27,7 @@ loop(Server, Username) ->
 	    Server ! {client, send_message, Username, DestUsername, _Message},
 	    loop(Server, Username);
 	{ send_input, Message } ->
-		Server ! Message;
+		Server ! {client, perform_action, self(), Message};
 	_Anything ->
 	    io:format("Received message: ~p~n", [_Anything]),
 	    loop(Server, Username)

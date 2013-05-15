@@ -8,7 +8,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 -module(client).
--export( [start/0, outputloop/0, inputloop/2 ] ).
+-export( [start/0, outputloop/0, inputloop/3 ] ).
 
 
 outputloop() ->
@@ -22,10 +22,10 @@ outputloop() ->
 			outputloop()
 	end.
 
-inputloop(Pid, Username) ->
+inputloop(Pid, Username, ConnectPid) ->
 	String = io:get_line( "$" ),
-	Pid ! { Username, parser:parse(String) },
-	inputloop(Pid, Username).
+	ConnectPid ! {send_input, { Username, parser:parse(String) } },
+	inputloop(Pid, Username, ConnectPid).
 
 getUserInfo() ->
 	Uname = string:strip(io:get_line( "Enter username:" ) ),
@@ -35,11 +35,11 @@ getUserInfo() ->
 start() ->
 	{Uname, Server} = getUserInfo(),
 	io:format(" Connecting to server ~p ~n", [Server] ),
-	Success = clientConnection:startConnection(Server, Uname),
+	Success = clientConnection:connect(Server, Uname),
 	case Success of
-	{ok} ->
+	{ok, ConnectPid} ->
 		Outpid = spawn( ui, outputloop, [] ),
-		inputloop(Outpid, Uname);
+		inputloop(Outpid, Uname, ConnectPid);
 	_ ->
 		io:format("Could not connect to server")
 	end.
