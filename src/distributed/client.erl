@@ -1,13 +1,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% UI module
+% Client module
 % Outputs game messages to the console.
 % Also watches for keyboard input, passes
-% to the parser, and sends to the server.
+% to the parser, and sends to the connection manager.
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
--module(ui).
+-module(client).
 -export( [start/0, outputloop/0, inputloop/2 ] ).
 
 
@@ -27,7 +27,13 @@ inputloop(Pid, Username) ->
 	Pid ! { Username, parser:parse(String) },
 	inputloop(Pid, Username).
 
+getUserInfo() ->
+	Uname = string:strip(io:get_line( "Enter username:" ) ),
+	Server = list_to_atom( string:strip( io:get_line( "Enter server node:"), both, $\n )  ),
+	{Uname, Server}.
+
 start() ->
-	Uname = io:get_line( "Enter username:\n$" ),
+	{Uname, Server} = getUserInfo(),
+	io:format(" Connecting to server ~p ~n", [Server] ),
 	Outpid = spawn( ui, outputloop, [] ),
 	inputloop(Outpid, Uname).

@@ -8,9 +8,11 @@
 % The dungeon will read its configuration out of the file
 % with the name specified.
 build_dungeon(ConfigFileName) ->
-	{ok, Configuration} = yaml:load_file(ConfigFileName, [implicit_atoms]),
-	RoomList = lists:keyfind(rooms, 1, Configuration),
-	Dungeon = spawn(fun() -> dungeon_loop(RoomList, dict:new()) end),
+	{ok, RoomConf} = file:consult(ConfigFileName),
+	Dungeon = spawn(fun() -> 
+				process_flag(trap_exit, true),
+				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+				dungeon_loop(RoomProcs, dict:new()) end),
 	register(dungeon, Dungeon),
 	Dungeon.
 
@@ -28,25 +30,30 @@ build_dungeon(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
+		{shutdown} ->
+			io:format("Dungeon is shutting down.~n");
+		{status} ->
+			server ! {Rooms, Connections};
 		{connected, Username} -> 
 		    Result = connect_player(Connections, Username, Rooms),
 			case Result of
-				{ok, NewConnections} 	-> server ! {ok, connected, Username},
+				{ok, NewConnections} 	-> server ! {dungeon, ok, connected, Username},
 										   dungeon_loop(Rooms, NewConnections);
-				{error, Message} 		-> server ! {error, connected, Username, Message},
+				{error, Message} 		-> server ! {dungeon, error, connected, Username, Message},
 										   dungeon_loop(Rooms, Connections)
 			end;
 		{disconnected, Username} ->
 			Result = disconnect_player(Connections, Username),
 			case Result of
-				{ok, NewConnections} 	-> server ! {ok, disconnected, Username},
+				{ok, NewConnections} 	-> server ! {dungeon, ok, disconnected, Username},
 							   			   dungeon_loop(Rooms, NewConnections);
-				{error, Message} 		-> server ! {error, disconnected, Username, Message},
+				{error, Message} 		-> server ! {dungeon, error, disconnected, Username, Message},
 							   			   dungeon_loop(Rooms, Connections)
 			end;
 		
 		% propagate the event to all users who are in that room.
-		{event, {Event, RoomProc}} -> dungeon_loop(Rooms, Connections);
+		{event, {Event, RoomProc}} 		-> propagate_event(Connections, RoomProc, Event),
+										   dungeon_loop(Rooms, Connections);
 
 		% player moved to a different room, update
 		% the connection map.
@@ -57,21 +64,32 @@ dungeon_loop(Rooms, Connections) ->
 				{error, _Message}		-> io:format("Warning: Dungeon state may be inconsistent."),
 										   dungeon_loop(Rooms, Connections)
 			end;
-		{Username, Verb, Object, Payload} ->
+		{Username, Verb, Object} ->
+			server ! {dungeon, ok, input, Username, {Verb, Object}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
-			Input = #input{verb=Verb, subject=PlayerProc, object=Object, payload=Payload},
+			Input = #input{verb=Verb, subject=PlayerProc, object=Object},
 			room:targetInput(RoomProc, Input),
 			% TODO: add error handling
 			dungeon_loop(Rooms, Connections);
-		Any -> io:format("~p~n", [Any]), dungeon_loop(Rooms, Connections)
+		{_Username, Any} -> 
+			server ! {dungeon, error, input, Any},
+			io:format("~p~n", [Any]),
+			dungeon_loop(Rooms, Connections)
 	end.
+
+% propagate_event
+%
+% Push an event up to all the users who were in the room when it occured.
+propagate_event(Connections, RoomProc, Event) ->
+	ConnectionList = dict:to_list(Connections),
+	[server ! {dungeon, ok, Username, Event} || {Username, Room} <- ConnectionList, Room == RoomProc].
 
 % move_player
 %
 % Update the dungeon's concept of which room a player
 % is currently in.
 move_player(Connections, PlayerProc, RoomProc) ->
-	Username = PlayerProc#character_proc.name,
+	Username = PlayerProc#thing_proc.name,
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};
@@ -90,10 +108,9 @@ connect_player(Connections, Username, Rooms) ->
 	case Result of
 		true -> {error, "Username already in the dungeon."};
 		false ->
-			% player:start returns a player pid... would be nicer if it
-			% returned a player proc record.
 			PlayerRecord = player:start(Username, default, default, StartingRoom),
 			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}),
+			room:addThing(StartingRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
 
@@ -108,8 +125,8 @@ disconnect_player(Connections, Username) ->
 		true ->
 			{PlayerRecord, CurrentRoom} = dict:fetch(Username, Connections),
 			NewConnections = dict:erase(Username, Connections),
-			% do something to remove the player from the room
-			% room:delete_or_whatever(CurrentRoom, PlayerRecord)
+			% remove the player from the room
+			room:leaveGame(CurrentRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
 
