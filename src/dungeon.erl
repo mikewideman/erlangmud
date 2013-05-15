@@ -1,25 +1,45 @@
 -module(dungeon).
--export([build_dungeon/1, merge_dungeon/1]).
+-export([start/1, merge/1]).
 -include("defs.hrl").
 
-% build_dungeon
+% start
 %
 % Start a dungeon process and register it to the atom 'dungeon'.
 % The dungeon will read its configuration out of the file
 % with the name specified.
-build_dungeon(ConfigFileName) ->
-	{ok, RoomConf} = file:consult(ConfigFileName),
-	Dungeon = spawn(fun() -> 
-				process_flag(trap_exit, true),
-				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-				dungeon_loop(RoomProcs, dict:new()) end),
-	register(dungeon, Dungeon),
-	Dungeon.
+start(ConfigFileName) ->
+	Result = file:consult(ConfigFileName),
+	case Result of
+		{ok, RoomConf} ->
+			Dungeon = spawn(fun() -> 
+						process_flag(trap_exit, true),
+						RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+						dungeon_loop(RoomProcs, dict:new()) end),
+			register(dungeon, Dungeon),
+			{ok, Dungeon};
+		{error, {Line, Mod, Term}} ->
+			Reason = file:format_error({Line, Mod, Term}),
+			{fail, Reason};
+		{error, Error} ->
+			{fail, Error}
+	end.		
 
-merge_dungeon(ConfigFileName) ->
-	{ok, RoomConf} = file:consult(ConfigFileName),
-	RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-	dungeon ! {merge, RoomProcs}.
+% merge
+%
+% Add additional rooms onto a running dungeon.
+merge(ConfigFileName) ->
+	Result = file:consult(ConfigFileName),
+	case Result of
+			{ok, RoomConf} ->
+				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+				dungeon ! {merge, RoomProcs},
+				{ok, merged};
+			{error, {Line, Mod, Term}} ->
+				Reason = file:format_error({Line, Mod, Term}),
+				{fail, Reason};
+			{error, Error} ->
+				{fail, Error}
+	end.
 
 % dungeon_loop
 %

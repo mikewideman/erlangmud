@@ -11,13 +11,20 @@ startLoop(CallbackPid) ->
     process_flag(trap_exit, true),
 
     % TODO: Use an actual configuration file name
-    Dungeon = dungeon:build_dungeon("../dungeon.conf"),
-    
-    % Link to the dungeon so that the server will know if the dungeon dies
-    link(Dungeon),
+    Result = dungeon:build_dungeon("dungeon.conf"),
+    case Result of
+	{fail, Reason} ->
+	    io:format("Could not build dungeon: ~p~n", Reason),
+	    io:format("Server is shutting down~n");
+	{ok, Dungeon} ->
+	    io:format("Dungeon (~p) successfully created~n", Dungeon),
 
-    CallbackPid ! {server_initialized},
-    loop(Dungeon, []).
+	    % Link to the dungeon so that the server will know if the
+	    % dungeon dies
+	    link(Dungeon),
+	    CallbackPid ! {server_initialized},
+	    loop(Dungeon, [])
+    end.
 
 shutdown() ->
     io:format("Server is shutting down~n"),
