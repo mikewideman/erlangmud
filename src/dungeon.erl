@@ -9,8 +9,10 @@
 % with the name specified.
 build_dungeon(ConfigFileName) ->
 	{ok, RoomConf} = file:consult(ConfigFileName),
-	RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-	Dungeon = spawn(fun() -> dungeon_loop(RoomProcs, dict:new()) end),
+	Dungeon = spawn(fun() -> 
+				process_flag(trap_exit, true),
+				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+				dungeon_loop(RoomProcs, dict:new()) end),
 	register(dungeon, Dungeon),
 	Dungeon.
 
@@ -69,7 +71,7 @@ dungeon_loop(Rooms, Connections) ->
 			room:targetInput(RoomProc, Input),
 			% TODO: add error handling
 			dungeon_loop(Rooms, Connections);
-		{Username, Any} -> 
+		{_Username, Any} -> 
 			server ! {dungeon, error, input, Any},
 			io:format("~p~n", [Any]),
 			dungeon_loop(Rooms, Connections)
