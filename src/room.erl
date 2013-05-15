@@ -142,7 +142,7 @@ makeDoor(Direction, ThisRoom, OtherRoom) ->
 removeDoor(Direction, ThisRoom, OtherRoom) ->
 	Id = make_ref(),
     ThisRoom#room_proc.pid ! {self(), removeDoor, Id, Direction, OtherRoom},
-    receive_response().
+    receive_response(Id).
 
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
@@ -229,7 +229,7 @@ main(Room) ->
                     end
 		    end,
 		    main(NewRoom);
-        {Sender, removeDoor, Id, Direction, OtherDoor} ->
+        {Sender, removeDoor, Id, Direction, OtherRoom} ->
             NewRoom = case Direction of
                 north ->
                     if Room#room.north_door == OtherRoom ->
