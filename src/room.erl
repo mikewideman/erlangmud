@@ -64,8 +64,9 @@ start(Description) ->
 %% @see thing:receiveEventNotification/2
 %% @end
 targetAction(Room_Proc, Action) -> 
-	Room_Proc#room_proc.pid ! {self(), targetAction, Action},
-	receive_response().
+	Id = make_ref(),
+	Room_Proc#room_proc.pid ! {self(), targetAction, Id, Action},
+	receive_response(Id).
 
 -spec targetInput   ( Room  :: #room_proc{}
                     , Input :: #input{}
@@ -75,15 +76,17 @@ targetAction(Room_Proc, Action) ->
 %% @see player:performAction/2
 %% @end
 targetInput(Room_Proc, Input) ->
-	Room_Proc#room_proc.pid ! {self(), targetInput, Input},
-	receive_response().
+	Id = make_ref(),
+	Room_Proc#room_proc.pid ! {self(), targetInput,Id, Input},
+	receive_response(Id).
 
 -spec look(Room_Proc :: #room_proc{}) -> list(#thing_proc{}).
 %% @doc Get a list of all the things in the room.
 %% @end
 look(Room_Proc) ->
-	Room_Proc#room_proc.pid ! {self(), look},
-	receive_response().
+	Id = make_ref(),
+	Room_Proc#room_proc.pid ! {self(), look, Id},
+	receive_response(Id).
 
 -spec broadcast ( Room_Proc     :: #room_proc{}
                 , Event         :: #event{}
@@ -93,7 +96,7 @@ look(Room_Proc) ->
 %% @see thing:receiveEventNotification/2
 %% @end
 broadcast(Room_Proc, Event, Excluded) ->
-	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
+	Room_Proc#room_proc.pid ! {self(), broadcast, Id, Event, Excluded}.
 
 %% @doc Add a thing to the room. Propagate the occurrence of this event to
 %% everything in the room.
@@ -101,7 +104,7 @@ broadcast(Room_Proc, Event, Excluded) ->
 %% @end
 -spec addThing(Room_Proc :: #room_proc{}, Thing :: #thing_proc{}) -> 'ok'.
 addThing(Room_Proc, Thing) ->
-	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
+	Room_Proc#room_proc.pid ! {self(), addThing, Id, Thing},
 	ok.
 
 -spec leaveGame ( Room_Proc     :: #room_proc{}
@@ -111,27 +114,30 @@ addThing(Room_Proc, Thing) ->
 %% @see thing:receiveEventNotification/2
 %% @end
 leaveGame(Room_Proc, Player) ->
-	Room_Proc#room_proc.pid ! {self(), leaveGame, Player},
-	receive_response().
+	Id = make_ref(),
+	Room_Proc#room_proc.pid ! {self(), leaveGame, Id, Player},
+	receive_response(Id).
 
 -spec makeDoor  ( Direction :: 'north' | 'east' | 'south' | 'west'
                 , ThisRoom  :: #room_proc{}
                 , OtherRoom :: #room_proc{}
-                ) -> 
+                ) -> error().
 %% @doc Connect a Room to another Room (unidirectionally).
 %% @end
 makeDoor(Direction, ThisRoom, OtherRoom) ->
-    ThisRoom#room_proc.pid ! {self(), makeDoor, Direction, OtherRoom},
-    receive_response().
+	Id = make_ref(),
+    ThisRoom#room_proc.pid ! {self(), makeDoor, Id, Direction, OtherRoom},
+    receive_response(Id).
     
 -spec removeDoor    ( Direction :: 'north' | 'east' | 'south' | 'west'
                     , ThisRoom  :: #room_proc{}
                     , OtherRoom :: #room_proc{}
-                    ) -> 
+                    ). 
 %% @doc Remove a Room's connection to another Room (unidirectionally).
 %% @end
 removeDoor(Direction, ThisRoom, OtherRoom) ->
-    ThisRoom#room_proc.pid ! {self(), removeDoor, Direction, OtherRoom},
+	Id = make_ref(),
+    ThisRoom#room_proc.pid ! {self(), removeDoor, Id, Direction, OtherRoom},
     receive_response().
 
 -spec main(#room{}) -> no_return().
@@ -139,86 +145,86 @@ removeDoor(Direction, ThisRoom, OtherRoom) ->
 %% @end
 main(Room) ->
 	receive
-		{Sender, targetAction, Action} when is_record(Action, action) ->
-            {NewRoom, Message} = s_targetAction(Room, Action),
-			Sender ! Message,
-			main(NewRoom);
-		{Sender, look}		->
-			Sender ! Room#room.things, % @todo turn into game event or something
+		{Sender, targetAction, Id, Action} when is_record(Action, action) ->
+		    	{NewRoom, Message} = s_targetAction(Room, Action),
+				Sender ! {Id, Message},
+				main(NewRoom);
+		{Sender, look, Id}		->
+			Sender ! {Id, Room#room.things}, % @todo turn into game event or something
 			main(Room);
-		{_, broadcast, Event, Excluded} ->
+		{_, broadcast, Id, Event, Excluded} ->
 			propagateEvent(Room, Event, Excluded),
 			main(Room);
-		{Sender, targetInput, Input} ->
-			Sender ! s_targetInput(Room, Input),
+		{Sender, targetInput,Id, Input} ->
+			Sender ! {Id, s_targetInput(Room, Input)},
 			main(Room);
-		{_, addThing, Thing} ->
+		{_, addThing, Id, Thing} ->
 			main(s_addThing(Room, Thing));
-		{Sender, leaveGame, Player} ->
+		{Sender, leaveGame, Id, Player} ->
 			case s_leaveGame(Room, Player) of
-				{error, Reason} -> Sender ! {error, Reason}, main(Room);
-				{ok, NewRoom} -> Sender ! ok, main(NewRoom)
+				{error, Reason} -> Sender ! {Id, {error, Reason}}, main(Room);
+				{ok, NewRoom} -> Sender ! {Id, ok}, main(NewRoom)
 			end;
-        {Sender, makeDoor, Direction, OtherRoom} ->
-            NewRoom = case Direction of
-                north ->
-                    if Room#room.north_door == none ->
-                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
-                        Room#room{north_door = OtherRoom};
-                    Room#room.north_door == OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, doorAlreadyMade}},
-                        Room;
-                    Room#room.north_door /= none
-                    andalso Room#room.north_Door /= OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, otherDoorAlreadyMade}},
-                        Room
-                    end;
-                east ->
-                    if Room#room.east_door == none ->
-                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
-                        Room#room{east_door = OtherRoom};
-                    Room#room.east_door == OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, doorAlreadyMade}},
-                        Room;
-                    Room#room.east_door /= none
-                    andalso Room#room.east_Door /= OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, otherDoorAlreadyMade}},
-                        Room
-                    end;
-                south ->
-                    if Room#room.south_door == none ->
-                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
-                        Room#room{south_door = OtherRoom};
-                    Room#room.south_door == OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, doorAlreadyMade}},
-                        Room;
-                    Room#room.south_door /= none
-                    andalso Room#room.south_Door /= OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, otherDoorAlreadyMade}},
-                        Room
-                    end;
-                west ->
-                    if Room#room.west_door == none ->
-                        Sender ! {ok, {makeDoor, Direction, self(), OtherRoom}},
-                        Room#room{west_door = OtherRoom};
-                    Room#room.west_door == OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, doorAlreadyMade}},
-                        Room;
-                    Room#room.west_door /= none
-                    andalso Room#room.west_Door /= OtherRoom ->
-                        Sender ! {error,    { makeDoor, Direction, self()
-                                            , OtherRoom, otherDoorAlreadyMade}},
-                        Room
-                end
-            end,
-            main(NewRoom);
+		{Sender, makeDoor, Id, Direction, OtherRoom} ->
+		    NewRoom = case Direction of
+			north ->
+			    if Room#room.north_door == none ->
+				Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
+				Room#room{north_door = OtherRoom};
+			    Room#room.north_door == OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, doorAlreadyMade}}},
+				Room;
+			    Room#room.north_door /= none
+			    andalso Room#room.north_Door /= OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, otherDoorAlreadyMade}}},
+				Room
+			    end;
+			east ->
+			    if Room#room.east_door == none ->
+				Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
+				Room#room{east_door = OtherRoom};
+			    Room#room.east_door == OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, doorAlreadyMade}}},
+				Room;
+			    Room#room.east_door /= none
+			    andalso Room#room.east_Door /= OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, otherDoorAlreadyMade}}},
+				Room
+			    end;
+			south ->
+			    if Room#room.south_door == none ->
+				Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
+				Room#room{south_door = OtherRoom};
+			    Room#room.south_door == OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, doorAlreadyMade}}},
+				Room;
+			    Room#room.south_door /= none
+			    andalso Room#room.south_Door /= OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, otherDoorAlreadyMade}}},
+				Room
+			    end;
+			west ->
+			    if Room#room.west_door == none ->
+				Sender ! {Id, {ok, {makeDoor, Direction, self(), OtherRoom}}},
+				Room#room{west_door = OtherRoom};
+			    Room#room.west_door == OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, doorAlreadyMade}}},
+				Room;
+			    Room#room.west_door /= none
+			    andalso Room#room.west_Door /= OtherRoom ->
+				Sender ! {Id, {error,    { makeDoor, Direction, self()
+						    , OtherRoom, otherDoorAlreadyMade}}},
+				Room
+			end
+		    end,
+		    main(NewRoom);
         %% @todo removeRoom
 		{'EXIT', Pid, _Reason} ->
 			%not related to a public function
@@ -412,13 +418,13 @@ actionToEvent(Action) ->
 		payload=Action#action.payload
 		}.
 
--spec receive_response() -> 'timeout' | any().
+-spec receive_response(CallId :: reference()) -> 'timeout' | any().
 %% @doc Wait for an incoming message and return it as a return value.
-%% TODO: maybe check that it was the response we were expecting?
+%% pass a unique reference. It will assume the return message (from the main loop) returns in the form {id, Result} where id is the same as the one passed into the response. This will only receive a response with a matching id.
 %% @end
-receive_response() ->
+receive_response(CallId) ->
 	receive
-		Any -> Any
+		{CallId, Any} -> Any
 	after 0 ->
 		timeout
 	end.
