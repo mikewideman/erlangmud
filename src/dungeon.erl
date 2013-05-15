@@ -9,8 +9,10 @@
 % with the name specified.
 build_dungeon(ConfigFileName) ->
 	{ok, RoomConf} = file:consult(ConfigFileName),
-	RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-	Dungeon = spawn(fun() -> dungeon_loop(RoomProcs, dict:new()) end),
+	Dungeon = spawn(fun() -> 
+				process_flag(trap_exit, true),
+				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+				dungeon_loop(RoomProcs, dict:new()) end),
 	register(dungeon, Dungeon),
 	Dungeon.
 
@@ -50,8 +52,8 @@ dungeon_loop(Rooms, Connections) ->
 			end;
 		
 		% propagate the event to all users who are in that room.
-		{event, {Event, RoomProc}} 		-> %{dungeon, ok, Username, Event},
-											dungeon_loop(Rooms, Connections);
+		{event, {Event, RoomProc}} 		-> propagate_event(Connections, RoomProc, Event),
+										   dungeon_loop(Rooms, Connections);
 
 		% player moved to a different room, update
 		% the connection map.
@@ -69,7 +71,7 @@ dungeon_loop(Rooms, Connections) ->
 			room:targetInput(RoomProc, Input),
 			% TODO: add error handling
 			dungeon_loop(Rooms, Connections);
-		{Username, Any} -> 
+		{_Username, Any} -> 
 			server ! {dungeon, error, input, Any},
 			io:format("~p~n", [Any]),
 			dungeon_loop(Rooms, Connections)
@@ -80,7 +82,7 @@ dungeon_loop(Rooms, Connections) ->
 % Push an event up to all the users who were in the room when it occured.
 propagate_event(Connections, RoomProc, Event) ->
 	ConnectionList = dict:to_list(Connections),
-	[server ! {} || {Username, Room} <- ConnectionList, Room == RoomProc].
+	[server ! {dungeon, ok, Username, Event} || {Username, Room} <- ConnectionList, Room == RoomProc].
 
 % move_player
 %
@@ -106,10 +108,9 @@ connect_player(Connections, Username, Rooms) ->
 	case Result of
 		true -> {error, "Username already in the dungeon."};
 		false ->
-			% player:start returns a player pid... would be nicer if it
-			% returned a player proc record.
 			PlayerRecord = player:start(Username, default, default, StartingRoom),
 			NewConnections = dict:store(Username, {PlayerRecord, StartingRoom}),
+			room:addThing(StartingRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
 
@@ -124,8 +125,8 @@ disconnect_player(Connections, Username) ->
 		true ->
 			{PlayerRecord, CurrentRoom} = dict:fetch(Username, Connections),
 			NewConnections = dict:erase(Username, Connections),
-			% do something to remove the player from the room
-			% room:delete_or_whatever(CurrentRoom, PlayerRecord)
+			% remove the player from the room
+			room:leaveGame(CurrentRoom, PlayerRecord),
 			{ok, NewConnections}
 	end.
 
