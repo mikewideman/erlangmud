@@ -1,6 +1,6 @@
 -module(server).
 -import(dungeon, [build_dungeon/1]).
--export([start/0, shutdown/0, startLoop/0, loop/1]).
+-export([start/1, shutdown/0, startLoop/1, loop/2]).
 
 start(_CallbackPid) ->
     ServerPid = spawn(server, startLoop, [_CallbackPid]),
@@ -20,16 +20,22 @@ startLoop(CallbackPid) ->
     loop(Dungeon, []).
 
 shutdown() ->
+    io:format("Server is shutting down~n"),
     Dungeon = whereis(dungeon),
-    case Dungeon
-	undefined -> ; % Do nothing -the dungeon process has already stopped
-	_Anything ->
+    case Dungeon of
+	undefined -> 
+	     % Do nothing -the dungeon process has already stopped
+	    io:format("Dungeon has already shut down~n");
+	_Any ->
+	    io:format("Shutting down the dungeon~n"),
 	    Dungeon ! {shutdown}
     end,
 
     Server = whereis(server),
-    case Server
-	undefined -> ; % Do nothing -the server process has already stopped
+    case Server of
+	undefined -> 
+	    % Do nothing -the server process has already stopped
+	    io:format("Server has already shutdown~n"); 
 	_Anything ->
 	    Server ! {shutdown, "Server has shut down"} 
     end.
@@ -55,8 +61,8 @@ loop(Dungeon, Clients) ->
 	    case SourcePid of		
 		username_not_found -> 
 		    % Nothing can be done in this case
-		    io:format("Unknown username ~p tried to send '~p' to ~p~n",
-			     SourceUsername, Message, DestUsername),
+		    io:format("Unknown user ~p tried to send a message to ~p~n",
+			     SourceUsername, DestUsername),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    DestPid = getPidForUser(DestUsername, Clients),
@@ -76,10 +82,12 @@ loop(Dungeon, Clients) ->
 		{ok, UpdatedClients} -> 
 		    loop(Dungeon, UpdatedClients);
 		{error, Reason} ->
+		    ClientPid ! {not_connected, Reason},
 		    io:format("Could not connect client ~p because: ~p~n",
 			     ClientPid, Reason),
 		    loop(Dungeon, Clients);
 		_Any -> 
+		    ClientPid ! {not_connected, "Unknown reason"},
 		    io:format("Could not connect client ~p for unknown reason",
 			     ClientPid),
 		    loop(Dungeon, Clients)					
@@ -87,49 +95,122 @@ loop(Dungeon, Clients) ->
 
 	{client, disconnect, ClientPid} ->
 	    UpdatedClients = disconnectClient(ClientPid, Clients),
+	    ClientPid ! {disconnected},
 	    loop(Dungeon, UpdatedClients);
 
 	{client, who_is_on, ClientPid} ->
 	    ClientPid ! {users, getUsernames(Clients)},
 	    loop(Dungeon, Clients);
 
-	% The RequestID is used in order to allow clients to differentiate
-	% between responses to different game actions in case multiple game
-	% action requests are sent from the same client in a short time frame.
-	% The GameAction parameter is assumed to have the correct form.
-	{client, perform_action, ClientPid, _RequestID, GameAction} ->
+	{client, perform_action, _ClientPid, GameAction} ->
 	    Dungeon ! GameAction,
 	    loop(Dungeon, Clients);
 	
 	{dungeon, ok, connected, Username} ->
-	    ;
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p was added to the dungeon~n",
+			     Username),
+		    io:format("Removing ~p from the dungeon~n", Username),
+		    Dungeon ! {disconnected, Username},
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p was successfully added to the dungeon~n",
+			     Username),
+		    ClientPid ! {connected},
+		    loop(Dungeon, Clients)
+	    end;	
 
-	{dungeon, error, connected, Username, Reason} ->
-	    ;
+	{dungeon, error, connected, Username, _Reason} ->
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p could was not added to dungeon~n",
+			     Username),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p was not added to the dungeon~n", Username),
+		    unlink(ClientPid),
+		    UpdatedClients = removeClient(ClientPid, Clients),
+		    ClientPid ! {not_connected},
+		    loop(Dungeon, UpdatedClients)
+	    end;
 	
 	{dungeon, ok, disconnected, Username} ->
-	    ;
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p was removed from the dungeon~n",
+			     Username),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p was successfully removed from the dungeon~n",
+			     Username),
+		    loop(Dungeon, Clients)
+	    end;
 
-	{dungeon, error, disconnected, Username, Reason} ->
-	    ;
+	{dungeon, error, disconnected, Username, _Reason} ->
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p could not be removed from the dungeon~n",
+			     Username),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p could not be removed from the dungeon~n",
+			      Username),
+		    loop(Dungeon, Clients)
+	    end;
 
 	{dungeon, ok, input, Username, GameAction} ->
-	    ;
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p performed action ~p~n",
+			     Username, GameAction),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p successfully performed action ~p~n",
+			     Username, GameAction),
+		    ClientPid ! {ok, GameAction}, % TODO: Make sure client handles this properly
+		    loop(Dungeon, Clients)
+	    end;
 		
 	{dungeon, error, input, Username, GameAction} ->
-	    ;
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Unknown user ~p failed to perform action ~p~n",
+			     Username, GameAction),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    io:format("~p failed to perform action ~p~n",
+			     Username, GameAction),
+		    ClientPid ! {fail, GameAction}, % TODO: Make sure client handles this properly
+		    loop(Dungeon, Clients)
+	    end;
 		
 	{dungeon, ok, Username, Event} ->
-	    ;
+	    ClientPid = getPidForUser(Username, Clients),
+	    case ClientPid of		
+		username_not_found -> 
+		    io:format("Event ~p could not reach unknown user ~p~n",
+			     Event, Username),
+		    loop(Dungeon, Clients);
+		_Any ->
+		    ClientPid ! {event, Event}, % TODO: Make sure client handles this properly
+		    loop(Dungeon, Clients)
+	    end;
 
 	{'EXIT', Pid, Why} ->
 	    case Pid of
 		Dungeon ->
 		    % TODO: Try to recover more gracefully
-		    self() ! {shutdown, "Dungeon has collapsed!"};
+		    self() ! {shutdown, Why};
 		_Any ->
 		    UpdatedClients = disconnectClient(Pid, Clients),
-		    loop({Dungeon, UpdatedClients}
+		    loop(Dungeon, UpdatedClients)
 	    end;
 
 	{shutdown, _Reason} ->
@@ -159,10 +240,18 @@ connectClient(ClientPid, Username, Clients) ->
 
 disconnectClient(ClientPid, Clients) ->
     unlink(ClientPid),
-    dungeon ! {disconnected, Username},
-    removeClient(ClientPid, Clients).
+    Username = getUsername(ClientPid, Clients),
+    case Username of
+	pid_not_found -> 
+	    io:format("Could not disonnect ~p: PID not found~n", ClientPid),
+	    Clients;
+	_Any ->
+	    dungeon ! {disconnected, Username},
+	    ClientPid ! {disconnected},
+	    removeClient(ClientPid, Clients)
+    end.
 
-removeClient(ClientPid, []) ->
+removeClient(_ClientPid, []) ->
     [];
 removeClient(ClientPid, [{ClientPid, _Username} | T]) ->
     T;
@@ -170,24 +259,27 @@ removeClient(ClientPid, [{_Pid, _Username} | T]) ->
     [{_Pid, _Username} | removeClient(ClientPid, T)].
 
 closeConnections([], _Reason) ->
-    ; % Nothing left to do
+    {ok}; % Nothing left to do
 closeConnections([{ClientPid, _Username} | T], _Reason) ->
     unlink(ClientPid),
-    ClientPid ! {disconnected, _Reason}.
-
-getPids([]) ->
-    [];
-getPids([{ClientPid, _Username} | T]) ->
-    [ClientPid | getPids(T)];
+    ClientPid ! {disconnected, _Reason},
+    closeConnections(T, _Reason).
 
 getUsernames([]) ->
     [];
 getUsernames([{_ClientPid, Username} | T]) ->
-    [Username | getUsernames(T)];
+    [Username | getUsernames(T)].
 
 getPidForUser(_Username, []) ->
     username_not_found;
-getPidForUser(Username, [{ClientPid, Username} | T]) ->
+getPidForUser(Username, [{ClientPid, Username} | _T]) ->
     ClientPid;
 getPidForUser(_Username, [_H | T]) ->
     getPidForUser(_Username, T).
+
+getUsername(_ClientPid, []) ->
+    pid_not_found;
+getUsername(ClientPid, [{ClientPid, Username} | _T]) ->
+    Username;
+getUsername(_ClientPid, [_H | T]) ->
+    getUsername(_ClientPid, T).
