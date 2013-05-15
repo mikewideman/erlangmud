@@ -3,7 +3,7 @@
 %%% consuming it regenerates 25 health
 %%% @end
 %%%=============================================================================
--module(potion).
+-module(object).
 -extends(thing).
 -compile(export_all).
 -include("defs.hrl").
