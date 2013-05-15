@@ -1,5 +1,5 @@
 -module(server).
--import(dungeon, [build_dungeon/1]).
+-import(dungeon, [start/1]).
 -export([start/1, shutdown/0, startLoop/1, loop/2]).
 
 start(_CallbackPid) ->
@@ -11,7 +11,7 @@ startLoop(CallbackPid) ->
     process_flag(trap_exit, true),
 
     % TODO: Use an actual configuration file name
-    Result = dungeon:build_dungeon("dungeon.conf"),
+    Result = dungeon:start("dungeon.conf"),
     case Result of
 	{fail, Reason} ->
 	    io:format("Could not build dungeon: ~p~n", Reason),
