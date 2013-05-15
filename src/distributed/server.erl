@@ -11,7 +11,7 @@ startLoop(CallbackPid) ->
     process_flag(trap_exit, true),
 
     % TODO: Use an actual configuration file name
-    Dungeon = dungeon:build_dungeon(config_file_name),
+    Dungeon = dungeon:build_dungeon("../dungeon.conf"),
     
     % Link to the dungeon so that the server will know if the dungeon dies
     link(Dungeon),
