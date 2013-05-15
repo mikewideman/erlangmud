@@ -1,5 +1,5 @@
 -module(dungeon).
--export([build_dungeon/1]).
+-export([build_dungeon/1, merge_dungeon/1]).
 -include("defs.hrl").
 
 % build_dungeon
@@ -18,7 +18,8 @@ build_dungeon(ConfigFileName) ->
 
 merge_dungeon(ConfigFileName) ->
 	{ok, RoomConf} = file:consult(ConfigFileName),
-	dungeon ! {amend, RoomList}
+	RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+	dungeon ! {merge, RoomProcs}.
 
 % dungeon_loop
 %
@@ -34,7 +35,7 @@ merge_dungeon(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
-		{amend, NewRooms} ->
+		{merge, NewRooms} ->
 			dungeon_loop(Rooms ++ NewRooms, Connections);
 		{shutdown} ->
 			io:format("Dungeon is shutting down.~n");
@@ -71,6 +72,11 @@ dungeon_loop(Rooms, Connections) ->
 										   dungeon_loop(Rooms, Connections)
 			end;
 		
+		% black-hole EXIT messages.
+		% The dungeon doesn't care or need to care if any processes die.
+		{'EXIT', _, _} ->
+			dungeon_loop(Rooms, Connections);
+		
 		% Propgate input from the client down to the room where the player
 		% is.
 		{Username, Verb, Object} ->
@@ -79,11 +85,6 @@ dungeon_loop(Rooms, Connections) ->
 			Input = #input{verb=Verb, subject=PlayerProc, object=Object},
 			room:targetInput(RoomProc, Input),
 			% TODO: add error handling
-			dungeon_loop(Rooms, Connections);
-		
-		% black-hole EXIT messages.
-		% The dungeon doesn't care or need to care if any processes die.
-		{'EXIT', _, _} ->
 			dungeon_loop(Rooms, Connections);
 		
 		% catchall for invalid messages from the server
@@ -95,7 +96,7 @@ dungeon_loop(Rooms, Connections) ->
 		% catchall for messages not matching the game protocol.
 		{Any} ->
 			io:format("~p~n", [Any]),
-			dungeon_loop(Rooms, Connections);
+			dungeon_loop(Rooms, Connections)
 	end.
 
 % propagate_event
