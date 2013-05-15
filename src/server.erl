@@ -1,5 +1,4 @@
 -module(server).
--import(dungeon, [start/1]).
 -export([start/1, shutdown/0, startLoop/1, loop/2]).
 
 start(_CallbackPid) ->
@@ -14,10 +13,10 @@ startLoop(CallbackPid) ->
     Result = dungeon:start("dungeon.conf"),
     case Result of
 	{fail, Reason} ->
-	    io:format("Could not build dungeon: ~p~n", Reason),
+	    io:format("Could not build dungeon: ~p~n", [Reason]),
 	    io:format("Server is shutting down~n");
 	{ok, Dungeon} ->
-	    io:format("Dungeon (~p) successfully created~n", Dungeon),
+	    io:format("Dungeon (~p) successfully created~n", [Dungeon]),
 
 	    % Link to the dungeon so that the server will know if the
 	    % dungeon dies
@@ -69,7 +68,7 @@ loop(Dungeon, Clients) ->
 		username_not_found -> 
 		    % Nothing can be done in this case
 		    io:format("Unknown user ~p tried to send a message to ~p~n",
-			     SourceUsername, DestUsername),
+			     [SourceUsername, DestUsername]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    DestPid = getPidForUser(DestUsername, Clients),
@@ -91,12 +90,12 @@ loop(Dungeon, Clients) ->
 		{error, Reason} ->
 		    ClientPid ! {not_connected, Reason},
 		    io:format("Could not connect client ~p because: ~p~n",
-			     ClientPid, Reason),
+			     [ClientPid, Reason]),
 		    loop(Dungeon, Clients);
 		_Any -> 
 		    ClientPid ! {not_connected, "Unknown reason"},
 		    io:format("Could not connect client ~p for unknown reason",
-			     ClientPid),
+			     [ClientPid]),
 		    loop(Dungeon, Clients)					
 	    end;
 
@@ -118,13 +117,13 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p was added to the dungeon~n",
-			     Username),
-		    io:format("Removing ~p from the dungeon~n", Username),
+			     [Username]),
+		    io:format("Removing ~p from the dungeon~n", [Username]),
 		    Dungeon ! {disconnected, Username},
 		    loop(Dungeon, Clients);
 		_Any ->
 		    io:format("~p was successfully added to the dungeon~n",
-			     Username),
+			     [Username]),
 		    ClientPid ! {connected},
 		    loop(Dungeon, Clients)
 	    end;	
@@ -134,10 +133,10 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p could was not added to dungeon~n",
-			     Username),
+			     [Username]),
 		    loop(Dungeon, Clients);
 		_Any ->
-		    io:format("~p was not added to the dungeon~n", Username),
+		    io:format("~p was not added to the dungeon~n", [Username]),
 		    unlink(ClientPid),
 		    UpdatedClients = removeClient(ClientPid, Clients),
 		    ClientPid ! {not_connected},
@@ -149,11 +148,11 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p was removed from the dungeon~n",
-			     Username),
+			     [Username]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    io:format("~p was successfully removed from the dungeon~n",
-			     Username),
+			     [Username]),
 		    loop(Dungeon, Clients)
 	    end;
 
@@ -162,11 +161,11 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p could not be removed from the dungeon~n",
-			     Username),
+			     [Username]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    io:format("~p could not be removed from the dungeon~n",
-			      Username),
+			      [Username]),
 		    loop(Dungeon, Clients)
 	    end;
 
@@ -175,11 +174,11 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p performed action ~p~n",
-			     Username, GameAction),
+			     [Username, GameAction]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    io:format("~p successfully performed action ~p~n",
-			     Username, GameAction),
+			     [Username, GameAction]),
 		    ClientPid ! {ok, GameAction}, % TODO: Make sure client handles this properly
 		    loop(Dungeon, Clients)
 	    end;
@@ -189,11 +188,11 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Unknown user ~p failed to perform action ~p~n",
-			     Username, GameAction),
+			     [Username, GameAction]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    io:format("~p failed to perform action ~p~n",
-			     Username, GameAction),
+			     [Username, GameAction]),
 		    ClientPid ! {fail, GameAction}, % TODO: Make sure client handles this properly
 		    loop(Dungeon, Clients)
 	    end;
@@ -203,7 +202,7 @@ loop(Dungeon, Clients) ->
 	    case ClientPid of		
 		username_not_found -> 
 		    io:format("Event ~p could not reach unknown user ~p~n",
-			     Event, Username),
+			     [Event, Username]),
 		    loop(Dungeon, Clients);
 		_Any ->
 		    ClientPid ! {event, Event}, % TODO: Make sure client handles this properly
@@ -250,7 +249,7 @@ disconnectClient(ClientPid, Clients) ->
     Username = getUsername(ClientPid, Clients),
     case Username of
 	pid_not_found -> 
-	    io:format("Could not disonnect ~p: PID not found~n", ClientPid),
+	    io:format("Could not disonnect ~p: PID not found~n", [ClientPid]),
 	    Clients;
 	_Any ->
 	    dungeon ! {disconnected, Username},

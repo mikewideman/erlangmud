@@ -96,7 +96,7 @@ look(Room_Proc) ->
 %% @see thing:receiveEventNotification/2
 %% @end
 broadcast(Room_Proc, Event, Excluded) ->
-	Room_Proc#room_proc.pid ! {self(), broadcast, Id, Event, Excluded}.
+	Room_Proc#room_proc.pid ! {self(), broadcast, Event, Excluded}.
 
 %% @doc Add a thing to the room. Propagate the occurrence of this event to
 %% everything in the room.
@@ -104,7 +104,7 @@ broadcast(Room_Proc, Event, Excluded) ->
 %% @end
 -spec addThing(Room_Proc :: #room_proc{}, Thing :: #thing_proc{}) -> 'ok'.
 addThing(Room_Proc, Thing) ->
-	Room_Proc#room_proc.pid ! {self(), addThing, Id, Thing},
+	Room_Proc#room_proc.pid ! {self(), addThing, Thing},
 	ok.
 
 -spec leaveGame ( Room_Proc     :: #room_proc{}
@@ -142,7 +142,7 @@ makeDoor(Direction, ThisRoom, OtherRoom) ->
 removeDoor(Direction, ThisRoom, OtherRoom) ->
 	Id = make_ref(),
     ThisRoom#room_proc.pid ! {self(), removeDoor, Id, Direction, OtherRoom},
-    receive_response().
+    receive_response(Id).
 
 -spec main(#room{}) -> no_return().
 %% @doc The main function of a room process. Loops forever.
@@ -156,13 +156,13 @@ main(Room) ->
 		{Sender, look, Id}		->
 			Sender ! {Id, Room#room.things}, % @todo turn into game event or something
 			main(Room);
-		{_, broadcast, Id, Event, Excluded} ->
+		{_, broadcast, Event, Excluded} ->
 			propagateEvent(Room, Event, Excluded),
 			main(Room);
 		{Sender, targetInput,Id, Input} ->
 			Sender ! {Id, s_targetInput(Room, Input)},
 			main(Room);
-		{_, addThing, Id, Thing} ->
+		{_, addThing, Thing} ->
 			main(s_addThing(Room, Thing));
 		{Sender, leaveGame, Id, Player} ->
 			case s_leaveGame(Room, Player) of
@@ -229,7 +229,7 @@ main(Room) ->
                     end
 		    end,
 		    main(NewRoom);
-        {Sender, removeDoor, Id, Direction, OtherDoor} ->
+        {Sender, removeDoor, Id, Direction, OtherRoom} ->
             NewRoom = case Direction of
                 north ->
                     if Room#room.north_door == OtherRoom ->
@@ -323,10 +323,11 @@ s_targetAction(Room, Action) ->
                 %% Subject is trying to enter this room.
                 Event = actionToEvent(Action),
                 propagateEvent(Room, Event, Action#action.subject),
-                { Room#room{things = [Action#action.subject | things]}
-                , {ok, Action}},
                 %% Update dungeon's knowledge of character location.
-                dungeon ! {characterMoved, {Action#action.subject, Room}};
+                dungeon !   { characterMoved
+                            , {Action#action.subject, Action#action.object}},
+                { Room#room{things = [Action#action.subject | things]}
+                , {ok, Action}};
             not is_record(Action#action.object, room_proc) ->
                 %% Object is not a room and Subject is not in this room.
                 {Room, {error, {notInRoom, TheSubject}}}
@@ -446,7 +447,7 @@ propagateEvent(Room, Event, Excluded) ->
                         , ThingString :: string()
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
-                                | #thing_proc.
+                                | #thing_proc{}.
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
