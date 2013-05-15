@@ -22,7 +22,8 @@
     , name              :: string()
     , health = 1        :: non_neg_integer()
     , attack = 1        :: pos_integer()
-    , inventory = []    :: list()               %% @todo: define item type
+    %% @todo make item processes stay alive, but use exclusion
+    % , inventory = []    :: list()
     , room              :: #room_proc{}
     }).
 
