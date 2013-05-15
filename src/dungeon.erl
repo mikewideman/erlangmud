@@ -8,13 +8,21 @@
 % The dungeon will read its configuration out of the file
 % with the name specified.
 build_dungeon(ConfigFileName) ->
-	{ok, RoomConf} = file:consult(ConfigFileName),
-	Dungeon = spawn(fun() -> 
-				process_flag(trap_exit, true),
-				RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
-				dungeon_loop(RoomProcs, dict:new()) end),
-	register(dungeon, Dungeon),
-	Dungeon.
+	Result = file:consult(ConfigFileName),
+	case Result of
+		{ok, RoomConf} ->
+			Dungeon = spawn(fun() -> 
+						process_flag(trap_exit, true),
+						RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+						dungeon_loop(RoomProcs, dict:new()) end),
+			register(dungeon, Dungeon),
+			{ok, Dungeon};
+		{error, {Line, Mod, Term}} ->
+			Reason = file:format_error({Line, Mod, Term}),
+			{fail, Reason};
+		{error, Error} ->
+			{fail, Error}
+	end.		
 
 merge_dungeon(ConfigFileName) ->
 	{ok, RoomConf} = file:consult(ConfigFileName),
