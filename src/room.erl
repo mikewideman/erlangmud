@@ -166,7 +166,7 @@ main(Room) ->
 			main(s_addThing(Room, Thing));
 		{Sender, leaveGame, Id, Player} ->
 			NewRoom = case s_leaveGame(Room, Player) of
-				{error, Reason} -
+				{error, Reason} ->
                     Sender ! {Id, {error, Reason}},
                     Room;
 				{ok, NewRoom1} ->
@@ -178,7 +178,7 @@ main(Room) ->
 		    NewRoom = case s_makeDoor(Direction, Room, OtherRoom) of
                 {error, Reason} ->
                     Sender ! {Id, {error, Reason}},
-                    Room
+                    Room;
                 {ok, NewRoom1} ->
                     Sender ! {Id, {ok}},
                     NewRoom1
@@ -187,10 +187,10 @@ main(Room) ->
         {Sender, removeDoor, Id, Direction, OtherRoom} ->
             NewRoom = case s_removeDoor(Direction, Room, OtherRoom) of
                 {error, Reason} ->
-                    Sender ! {Id, error, Reason}},
+                    Sender ! {Id, {error, Reason}},
                     Room;
                 {ok, NewRoom1} ->
-                    Sender ! {Id, {ok}}
+                    Sender ! {Id, {ok}},
                     NewRoom1
             end,
             main(NewRoom);
@@ -389,7 +389,7 @@ s_makeDoor(Direction, ThisRoom, OtherRoom) ->
 %% @doc Remove the door to another room.
 %% @end
 s_removeDoor(Direction, ThisRoom, OtherRoom) ->
-    NewRoom = case Direction of
+    case Direction of
         north ->
             if ThisRoom#room.north_door == OtherRoom ->
                 {ok, ThisRoom#room{north_door = OtherRoom}};
@@ -400,7 +400,7 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
                 {error, incorrectDoorToRemove}
             end;
         east ->
-            if ThisRoom#room.east_door == OtherRoom ->,
+            if ThisRoom#room.east_door == OtherRoom ->
                 {ok, ThisRoom#room{east_door = OtherRoom}};
             ThisRoom#room.east_door == none ->
                 {error, noDoorToRemove};
@@ -414,19 +414,19 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
             ThisRoom#room.south_door == none ->
                 {error, noDoorToRemove};
             ThisRoom#room.south_door /= none
-            andalso Room#room.south_door /= OtherRoom ->
+            andalso ThisRoom#room.south_door /= OtherRoom ->
                 {error, incorrectDoorToRemove}
             end;
         west ->
             if ThisRoom#room.west_door == OtherRoom ->
-                {ok, Room#room{west_door = OtherRoom}};
+                {ok, ThisRoom#room{west_door = OtherRoom}};
             ThisRoom#room.west_door == none ->
                 {error, noDoorToRemove};
             ThisRoom#room.west_door /= none
             andalso ThisRoom#room.west_door /= OtherRoom ->
                 {error, incorrectDoorToRemove}
             end
-    end.    
+    end.
                     
 %%%HELPER%%%
 
