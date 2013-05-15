@@ -1,13 +1,13 @@
 -module(dungeon).
--export([build_dungeon/1, merge_dungeon/1]).
+-export([start/1, merge/1]).
 -include("defs.hrl").
 
-% build_dungeon
+% start
 %
 % Start a dungeon process and register it to the atom 'dungeon'.
 % The dungeon will read its configuration out of the file
 % with the name specified.
-build_dungeon(ConfigFileName) ->
+start(ConfigFileName) ->
 	Result = file:consult(ConfigFileName),
 	case Result of
 		{ok, RoomConf} ->
@@ -24,10 +24,10 @@ build_dungeon(ConfigFileName) ->
 			{fail, Error}
 	end.		
 
-% merge_dungeon
+% merge
 %
 % Add additional rooms onto a running dungeon.
-merge_dungeon(ConfigFileName) ->
+merge(ConfigFileName) ->
 	Result = file:consult(ConfigFileName),
 	case Result of
 			{ok, RoomConf} ->
