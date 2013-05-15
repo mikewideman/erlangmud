@@ -165,10 +165,11 @@ main(Room) ->
 		{_, addThing, Thing} ->
 			main(s_addThing(Room, Thing));
 		{Sender, leaveGame, Id, Player} ->
-			case s_leaveGame(Room, Player) of
-				{error, Reason} -> Sender ! {Id, {error, Reason}}, main(Room);
-				{ok, NewRoom} -> Sender ! {Id, ok}, main(NewRoom)
-			end;
+			Rm = case s_leaveGame(Room, Player) of
+				{error, Reason} -> Sender ! {Id, {error, Reason}}, Room;
+				{ok, NewRoom} -> Sender ! {Id, ok}, NewRoom
+			end,
+			main(Rm);
 		{Sender, makeDoor, Id, Direction, OtherRoom} ->
 		    NewRoom = case Direction of
                 north ->
