@@ -8,30 +8,43 @@
 %%% Types %%%%
 %%%%%%%%%%%%%%
 
--type verb() :: atom().
+-type verb() ::
+      'attack'
+    | 'enter'
+    | 'pick_up'
+    | 'inc_attack'
+    | 'drink'
+    | 'heal'
+    | 'died'
+    | atom().   %% lets you use any atom you want, the above are just for
+                %% reference. 
 %% verb() is an atom which is recognized as a valid verb in a command sentence
 %% issued by the user or by character actions in general. In other words, verbs
+%% are the types of things that can happen.
+
 -type payload_value() ::
-      {'damage', Damage :: pos_integer()}   %% DamageTaken or DamageDone
-    | {'heal', Heal :: pos_integer()}   %% HealAmount or HealthRestored
+      {'damage', Damage :: pos_integer()}       %% DamageTaken or DamageDone
+    | {'heal', Heal :: pos_integer()}           %% HealAmount or HealthRestored
+    | {'inc_attack', Attackinc :: pos_integer()}
     | {atom(), any()}
     .
-
+%% payload_value() is a type which describes extra data in actions and events.
+%% It comes in the form of a key, value pair.
 
 %%%%%%%%%%%%%%%
 %%% Records %%%
 %%%%%%%%%%%%%%%
 
 -record(thing_proc,
-    { pid           :: pid()
-    , id            :: reference()
-    , name          :: string()
+    { pid               :: pid()
+    , id = make_ref()   :: reference()
+    , name              :: string()
     }).
 
 -record(room_proc,
-    { pid           :: pid()
-    , id            :: reference()
-    , description   :: string()
+    { pid               :: pid()
+    , id = make_ref()   :: reference()
+    , description       :: string()
     }).
 
 -record(action,
