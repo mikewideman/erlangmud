@@ -223,7 +223,8 @@ loop(Dungeon, Clients) ->
 	    closeConnections(Clients, _Reason);
 
 	_Any ->
-	    io:format("Unrecognized message ~p received~n", [_Any])
+	    io:format("Unrecognized message ~p received~n", [_Any]),
+		loop(Dungeon, Clients)
     end.	  
 
 

@@ -5,7 +5,7 @@
 %%%=============================================================================
 -module(object).
 -extends(thing).
--compile(export_all).
+-compile(start/1).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
@@ -20,43 +20,73 @@
 %%% Public functions %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
+-spec start(Type :: atom(), Name :: string() Value :: any()) -> #thing_proc{}.
+%% @doc Start an object's process with a given name. The process will run until
+%% the object is interacted with. Returns the thing_proc of the object.
+%% @end
+start(Type, Name, Value)->
+    Proc = case Type of
+        potion ->
+            #thing_proc{pid = spawn(fun() -> potionloop(Value) end), name = Name};
+        weapon ->
+            #thing_proc{pid = spawn(fun() -> weaponloop(Value) end), name = Name};
+        _Any ->
+            #thing_proc{pid = spawn(fun() -> rockloop() end), name = Name}
+    end.
 
-start(Type)->
-    case Type of
-        potion -> Pid = spawn(potion, potionloop, [])
-            ,Proc=#thing_proc{pid=Pid, name="Health Potion"};
-        _Any -> Pid = spawn(potion, rockloop, [])
-            ,Proc=#thing_proc{pid=Pid, name="Rock"}
-    end,
-    Proc.
-    
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Private functions %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%    
 
+-spec rockloop() -> no_return().
+%% @doc An inanimate rock.
+%% @end
 rockloop() ->
     receive
         _Any -> rockloop()
     end.
-    
-% @todo: the potion never gets used up.
-potionloop()->
+
+-spec potionloop(HealAmount :: pos_integer()) -> no_return().
+%% @doc A health potion.    
+%% @end
+%% @todo: the potion never gets used up.
+potionloop(HealAmount)->
     receive 
-        Event when is_record(Event, event) and Event#event.object#thing_proc.pid == self() ->
+        Event when  is_record(Event, event)
+                    andalso Event#event.object#thing_proc.pid == self() ->
             case Event#event.verb of 
-                drink -> thing:receiveEventNotification(Event#event.object, #event{ verb = heal
-                                                                                , subject = Event#event.object
-                                                                                , object = Event#event.subject
-                                                                                , payload = [{heal, 25}]})
+                drink ->
+                    thing:receiveEventNotification
+                        ( Event#event.object
+                        , #event{ verb = heal
+                                , subject = Event#event.object
+                                , object = Event#event.subject
+                                , payload = [{heal, HealAmount}]});
+                _Any ->
+                    %% @todo tell room an invalid verb was sent
+                    potionloop()
             end;
         _Any-> potionloop()
     end.
 
-weaponloop() ->     
-        receive 
-        Event when is_record(Event, event) ->
+-spec weaponloop(AttackBonus :: pos_integer()) -> no_return().
+%% @doc A weapon.
+%% @end
+weaponloop(AttackBonus) ->     
+    receive 
+        Event when  is_record(Event, event)
+                    andalso Event#event.object#thing_proc.pid == self() ->
             case Event#event.verb of 
-                pickup -> thing:receiveEventNotification(Event#event.object, #event{ verb = inc_attack
-                                                                                , subject = Event#event.object
-                                                                                , object = Event#event.subject
-                                                                                , payload = [{inc_attack, 5}]})
+                pick_up ->
+                    thing:receiveEventNotification
+                        ( Event#event.object
+                        , #event{ verb = inc_attack
+                                , subject = Event#event.object
+                                , object = Event#event.subject
+                                , payload = [{inc_attack, AttackBonus}]});
+                _Any ->
+                    %% @todo tell room an invalid verb was sent
+                    potionloop()
             end;
         _Any-> potionloop()
     end.
