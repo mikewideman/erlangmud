@@ -11,7 +11,7 @@
 -type verb() ::
       'attack'
     | 'enter'
-    | 'pick_up'
+    | 'take'
     | 'inc_attack'
     | 'drink'
     | 'heal'
