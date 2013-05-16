@@ -55,6 +55,12 @@ merge(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
+		{rooms, Sender} ->
+			Sender ! {Rooms},
+			dungeon_loop(Rooms, Connections);
+		{spawn, Thing, Room} ->
+			room:addThing(Room, Thing),
+			dungeon_loop(Rooms, Connections);
 		{merge, NewRooms} ->
 			dungeon_loop(Rooms ++ NewRooms, Connections);
 		{shutdown} ->
