@@ -23,8 +23,15 @@ outputloop() ->
 
 inputloop(Pid, Username, ConnectPid) ->
 	String = string:strip(io:get_line( "$" ),both, $\n ),
-	ConnectPid ! {send_input, { Username, parser:parse(String) } },
-	inputloop(Pid, Username, ConnectPid).
+	if
+		String == "" ->
+			inputloop(Pid, Username, ConnectPid);
+		String == "quit" ->
+			io:format("Exiting...");
+		true ->
+			ConnectPid ! {send_input, { Username, parser:parse(String) } },
+			inputloop(Pid, Username, ConnectPid)
+	end.
 
 getUserInfo() ->
 	Uname = string:strip(io:get_line( "Enter username:" ), both, $\n ),
