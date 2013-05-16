@@ -13,9 +13,10 @@ start(ConfigFileName) ->
 		{ok, RoomConf} ->
 			Dungeon = spawn(fun() -> 
 						process_flag(trap_exit, true),
-						RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+						RoomProcs = [room:start(Description) || {room, Description, _Things, _Doors} <- RoomConf],
 						dungeon_loop(RoomProcs, dict:new()) end),
 			register(dungeon, Dungeon),
+			dungeon ! {init, RoomConf},
 			{ok, Dungeon};
 		{error, {Line, Mod, Term}} ->
 			Reason = file:format_error({Line, Mod, Term}),
@@ -41,30 +42,64 @@ merge(ConfigFileName) ->
 				{fail, Error}
 	end.
 
+% rooms
+%
+% Return the list of rooms in the dungeon.
 rooms() ->
 	dungeon ! {rooms, self()},
 	receive
 		Any -> Any
 	end.
 
+% spawn
+%
+% Insert a Thing into a room.
 spawn(Thing, Room) ->
 	dungeon ! {spawn, Thing, Room},
 	{ok}.
 
+% h_populate_rooms
+% 
+% Init helper function. 
+% Insert starting items and mobs into rooms.
+h_populate_rooms(Rooms, RoomConf) ->
+	Each = fun(Room) ->
+		{room, _Description, Things, _Doors} = lists:keyfind(Room#room_proc.description, 2, RoomConf),
+		[ dungeon:spawn(object:start(ThingAtom, ThingName, ThingVal, Room), Room) || {ThingAtom, ThingName, ThingVal} <- Things]
+	end,
+	lists:foreach(Each, Rooms).
+
+% h_link_rooms
+% 
+% Init helper function.
+% Link rooms with doors.
+h_link_rooms(Rooms, RoomConf) ->
+	Each = fun(Room) ->
+		{room, _Description, _Things, Doors} = lists:keyfind(Room#room_proc.description, 2, RoomConf),
+		[ room:makeDoor(Direction, Room, lists:nth(Number, Rooms)) || {Direction, Number} <- Doors]
+	end,
+	lists:foreach(Each, Rooms).
+	
+
 % dungeon_loop
 %
-% TODO: Update documentation
-%
 % Main message loop for the Dungeon.
-% The dungeon responds to 4 types of messages.
-% These messages are:
+% The dungeon responds to several types of messages.
+% Some of these messages are:
 %		Player connected 	-> Spawn a new player in a randomly selected
 %							   starting room.
 %		Player disconnected -> Remove the disconnected player from the dungeon.
 %		Player input		-> Pass player input down to the room they are in.
 %		Room responses		-> Pass a room response up the chain to the connection.
+%
+% Other messages are documented at their pattern match in the following loop.
 dungeon_loop(Rooms, Connections) ->
 	receive
+
+		{init, RoomConf} ->
+			h_populate_rooms(Rooms, RoomConf),
+			h_link_rooms(Rooms, RoomConf),
+			dungeon_loop(Rooms, Connections);
 		{rooms, Sender} ->
 			Sender ! {Rooms},
 			dungeon_loop(Rooms, Connections);
@@ -73,10 +108,15 @@ dungeon_loop(Rooms, Connections) ->
 			dungeon_loop(Rooms, Connections);
 		{merge, NewRooms} ->
 			dungeon_loop(Rooms ++ NewRooms, Connections);
+
+		% Cease looping and print a status message.
 		{shutdown} ->
 			io:format("Dungeon is shutting down.~n");
+		% Return the dungeon's status to the server.
 		{status} ->
-			server ! {Rooms, Connections};
+			server ! {Rooms, Connections},
+			dungeon_loop(Rooms, Connections);
+
 		{connected, Username} -> 
 		    Result = connect_player(Connections, Username, Rooms),
 			case Result of
@@ -95,12 +135,13 @@ dungeon_loop(Rooms, Connections) ->
 			end;
 		
 		% propagate the event to all users who are in that room.
-		{event, {Event, RoomProc}} 		-> propagate_event(Connections, RoomProc, Event),
+		{event, {Event, RoomProc}} 		-> io:format("Event: ~p ~p~n", [Event, RoomProc]),
+										   propagate_event(Connections, RoomProc, Event),
 										   dungeon_loop(Rooms, Connections);
 
 		% player moved to a different room, update
 		% the connection map.
-		{characterMoved, PlayerProc, RoomProc} ->
+		{characterMoved, {PlayerProc, RoomProc}} ->
 			Result = move_player(Connections, PlayerProc, RoomProc),
 			case Result of
 				{ok, NewConnections} 	-> dungeon_loop(Rooms, NewConnections);
@@ -116,10 +157,12 @@ dungeon_loop(Rooms, Connections) ->
 		{error, Any} ->
 			io:format("Dungeon received an error message it didn't understand: ~p~n", [Any]),
 			dungeon_loop(Rooms, Connections);
-	
+		
+		% Give the user a view of their surroundings
 		{Username, {look}} ->
 			%server ! {dungeon, ok, input, Username, {Verb, noDirectObject}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
+			io:format("Player looking around room: ~p~n",[RoomProc]),
 			Response = room:look(RoomProc),
 			ResponseStrings = lists:map(fun(Thing) -> Thing#thing_proc.name end, Response),
 			Event = #event{verb=look, subject=PlayerProc, object=RoomProc#room_proc.description, payload=[{room_content, ResponseStrings}]},
@@ -129,13 +172,12 @@ dungeon_loop(Rooms, Connections) ->
 		% Propgate input from the client down to the room where the player
 		% is.
 		{Username, {Verb, Object}} ->
-			io:format("WTF: ~p ~p~n", [Username, {Verb, Object}]),
 			server ! {dungeon, ok, input, Username, {Verb, Object}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
 			Input = #input{verb=Verb, subject=PlayerProc, object=Object},
 			Response = room:targetInput(RoomProc, Input),
 			io:format("TargetInput Response: ~p~n", [Response]),
-			% TODO: add error handling
+			% TODO: add error handling for this?
 			dungeon_loop(Rooms, Connections);
 		
 		% catchall for invalid messages from the server
@@ -154,8 +196,11 @@ dungeon_loop(Rooms, Connections) ->
 %
 % Push an event up to all the users who were in the room when it occured.
 propagate_event(Connections, RoomProc, Event) ->
+	io:format("Propagate~n"),
 	ConnectionList = dict:to_list(Connections),
-	[server ! {dungeon, ok, Username, Event} || {Username, Room} <- ConnectionList, Room == RoomProc].
+	UsersToMessage = [{U, {T, R}} || {U, {T, R}} <- ConnectionList, R#room_proc.id == RoomProc#room_proc.id],
+	io:format("~p~n", [UsersToMessage]),
+	[server ! {dungeon, ok, Username, Event} || {Username, _Room} <- UsersToMessage].
 
 % move_player
 %
@@ -166,7 +211,7 @@ move_player(Connections, PlayerProc, RoomProc) ->
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};
-		true -> NewConnections = dict:update(Username, {PlayerProc, RoomProc}),
+		true -> NewConnections = dict:store(Username, {PlayerProc, RoomProc}, Connections),
 				{ok, NewConnections}
 	end.
 
@@ -176,7 +221,8 @@ move_player(Connections, PlayerProc, RoomProc) ->
 % and insert the player into a randomly selected
 % starting room.
 connect_player(Connections, Username, Rooms) ->
-	StartingRoom = lists:nth(random:uniform(length(Rooms)), Rooms),
+	% StartingRoom = lists:nth(random:uniform(length(Rooms)), Rooms),
+	StartingRoom = lists:nth(1, Rooms),
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		true -> {error, "Username already in the dungeon."};

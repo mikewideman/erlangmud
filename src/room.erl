@@ -199,7 +199,8 @@ main(Room) ->
 					notInRoom;
 				Thing ->
 					s_leaveGame(Room, Thing)
-			end
+			end,
+			main(Room)
 			
 	after 0 -> main(Room)
 	end.
@@ -208,16 +209,16 @@ main(Room) ->
 %%% Private functions %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec s_targetAction    ( Room :: #room{}
-                        , Action :: #action{}
-                        ) ->      {#room{}, {'ok', #action{}}}
-                                | {#room{}, {'error', term()}}.
+-spec s_targetAction    ( Room      :: #room{}
+                        , Action    :: #action{}
+                        ) ->  {#room{}, {'ok', #action{}}}
+                            | {#room{}, {'error', term()}}.
 %% @doc Validate the Action and turn it into an Event, and notify every thing
 %% in the room that the Event occurred. Acknowledge the validity of the Action
 %% to the character that caused it as well. If necessary, update the state
 %% of the room. Return the room state and the acknowledgement message.
 %% @end
-s_targetAction(Room, Action) ->
+s_targetAction(Room, Action) when is_record(Room, room) andalso Action#action.object /= none ->
 	%% Check for Subject's presence in room.
     %% @todo Update if subjects are capable of not being characters.
     TheSubject = lists:keyfind  ( Action#action.subject#thing_proc.id
@@ -235,7 +236,7 @@ s_targetAction(Room, Action) ->
                 %% Update dungeon's knowledge of character location.
                 dungeon !   { characterMoved
                             , {Action#action.subject, Action#action.object}},
-                { Room#room{things = [Action#action.subject | things]}
+                { Room#room{things = [Action#action.subject | Room#room.things]}
                 , {ok, Action}};
             not is_record(Action#action.object, room_proc) ->
                 %% Object is not a room and Subject is not in this room.
@@ -253,16 +254,17 @@ s_targetAction(Room, Action) ->
                 case TheObject of
                     false ->
                         {Room, {error, {notInRoom, TheObject}}};
-                    Object ->
+                    _Object ->
                         Event = actionToEvent(Action),
-                        Propogate = fun(Thing) ->
-                            if Thing /= Object ->
-                                thing:receiveEventNotification(Object, Event);
-                            Thing == Object ->
-                                skip
-                            end
-                        end,
-                        lists:foreach(Propogate, Room#room.things),
+                        % Propogate = fun(Thing) ->
+                            % if Thing /= Object ->
+                                % thing:receiveEventNotification(Object, Event);
+                            % Thing == Object ->
+                                % skip
+                            % end
+                        % end,
+                        % lists:foreach(Propogate, Room#room.things),
+                        propagateEvent(Room, Event, TheSubject),
                         {Room, {ok, Action}}
                 end;
             is_record(Action#action.object, room_proc) ->
@@ -283,7 +285,9 @@ s_targetAction(Room, Action) ->
                     {Room, {error, {notInRoom, Action#action.object}}}
                 end
             end
-	end.
+	end;
+s_targetAction(Room, Action) when Action#action.object == none ->
+    {Room, {error, {noSuchDoor}}}.
 
 -spec s_targetInput ( Room :: #room_proc{}
                     , Input :: #input{}
@@ -318,16 +322,20 @@ s_addThing(Room, Thing) ->
 	NewRoom.
 
 -spec s_leaveGame   ( Room :: #room{}
-                    , Player :: #thing_proc{}
+                    , Thing :: #thing_proc{}
                     ) -> {error, notInRoom} | {ok, #room{}}.
-%% @doc Remove the leaving player from the room. Propogate this as an event.
+%% @doc Remove the leaving thing from the room. Propogate this as an event.
 %% @end
-s_leaveGame(Room, Player)  -> 
-	case lists:keysearch(Player, #room.things, Room#room.things) of 
+s_leaveGame(Room, Thing)  -> 
+	case lists:keyfind(Thing#thing_proc.id, #thing_proc.id, Room#room.things) of 
 		false -> {error, notInRoom};
-		{value, Elem} ->
-            Event = #event{verb = left, subject = Player, object = none},
-			propagateEvent(Room, Event, Player),
+		Elem when is_record(Elem, thing_proc) ->
+            Room_Proc = #room_proc  { pid = self()
+                                    , id = Room#room.id
+                                    , description = Room#room.description
+                                    },
+            Event = #event{verb = left, subject = Thing, object = Room_Proc},
+			propagateEvent(Room, Event, Thing),
 			NewRoom = Room#room{things=lists:delete(Elem, Room#room.things)},
 			{ok, NewRoom}
 	end.
@@ -426,7 +434,7 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
                     
 %%%HELPER%%%
 
--spec propagateEvent    ( Room          :: #room_proc{}
+-spec propagateEvent    ( Room          :: #room{}
                         , Event         :: #event{}
                         , Excluded      :: #thing_proc{} | 'none'
                         ) -> any().
@@ -435,24 +443,32 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
 %% occurring as well.
 %% @end
 propagateEvent(Room, Event, Excluded) ->
-    Propogate = fun(Thing, ExcludedThing) ->
+    Propagate = fun(Thing, ExcludedThing) ->
         if Thing /= ExcludedThing ->
             thing:receiveEventNotification(Thing, Event);
         Thing == ExcludedThing ->
             skip
         end
     end,
-    lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things),
-    dungeon ! {event, {Event, Room}}.
+    lists:foreach(fun(T) -> Propagate(T, Excluded) end, Room#room.things),
+    Room_Proc = #room_proc  { pid = self()
+                            , id = Room#room.id
+                            , description = Room#room.description},
+    dungeon ! {event, {Event, Room_Proc}}.
 
 -spec hrThingToThing    ( Room :: #room{}
                         , ThingString :: string()
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
-                                | #thing_proc{}.
+                                | #thing_proc{}
+                                | #room_proc{}.
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
+hrThingToThing(Room, "north door") -> Room#room.north_door;
+hrThingToThing(Room, "south door") -> Room#room.south_door ;
+hrThingToThing(Room, "east door") -> Room#room.east_door ;
+hrThingToThing(Room, "west door") -> Room#room.west_door;
 hrThingToThing(Room, ThingString) ->
 	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
 	N = string:strip(string:to_lower(ThingString)),

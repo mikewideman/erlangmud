@@ -42,16 +42,27 @@
 %%
 %% @see make_character/4
 %% @end
+start(Name, default, default, Room) ->
+    Player = #pc{name = Name, room = Room},
+    h_start(Player);
+start(Name, default, Attack, Room) ->
+    Player = #pc{name = Name, attack = Attack, room = Room},
+    h_start(Player);
+start(Name, Health, default, Room) ->
+    Player = #pc{name = Name, health = Health, room = Room},
+    h_start(Player);
 start(Name, Health, Attack, Room) ->
-    Player = #pc { name = Name
-                        , health = Health
-                        , attack = Attack
-                        , room = Room
-                        },
+    Player = #pc{name = Name, health = Health, attack = Attack, room = Room},
+    h_start(Player).
+
+-spec h_start(Player :: #pc{}) -> #thing_proc{}.
+%% @doc Given the constructed player record, start the main loop.
+%% @end
+h_start(Player) ->
     #thing_proc { pid = spawn(fun() -> main(Player) end)
                 , id = Player#pc.id
-                , name = Name}.
-
+                , name = Player#pc.name}.
+                
 -spec main  ( Player :: #pc{}) -> no_return().
 %% @doc The main function of a Player. Loops forever so long as the Player does
 %% not die.
@@ -69,8 +80,8 @@ main(Player) when Player#pc.health > 0 ->
                     %% Got a command to perform an enter action.
                     %% No need to add payload.
                     Action;
-                pick_up ->
-                    %% Got a command to perform a pick_up action.
+                take ->
+                    %% Got a command to perform a take action.
                     %% No need to add payload.
                     Action;
                 drink ->
@@ -86,24 +97,34 @@ main(Player) when Player#pc.health > 0 ->
                 {error, {notInRoom, Subject}} ->
                     %% This player is not in the room which told the player to
                     %% perform this action.
-                    %% @todo Any need to change state?
                     Player;
+                    %% @todo bubble error message up to client
                 {error, {notInRoom, Object}} ->
                     %% The object of the action is not in the room which told
                     %% the player to perform this action.
-                    %% @todo Any need to change state?
                     Player;
+                    %% @todo bubble error message up to client
+                {error, {noSuchDoor}} ->
+                    %% The object of the action is a door which does not exist.
+                    %% E.g., the door is 'none'.
+                    Player;
+                    %% @todo bubble error message up to client
                 {ok, ActionToSend} ->
-                    % The action was successful.
-                    %% @todo
+                    %% The action was successful.
                     case ActionToSend#action.verb of
                         attack ->
-                            %% Attack succeeded.
-                            %% @todo Any need to change state?
+                            %% Successfully attacked.
                             Player;
                         enter ->
                             %% Successfully entered new room.
+                            %% @todo this is redundant with the event receive
                             Player#pc{room = ActionToSend#action.object};
+                        take ->
+                            %% Successfully took a weapon.
+                            Player;
+                        drink ->
+                            %% Successfully drank a potion.
+                            Player;
                         _SentVerb ->
                             %% Some other successful action.
                             Player
@@ -113,24 +134,54 @@ main(Player) when Player#pc.health > 0 ->
             end;
         Event when is_record(Event, event) ->  
             %% Notified of a game event.
+            Player_Proc = #thing_proc   { pid = self()
+                                        , id = Player#pc.id
+                                        , name = Player#pc.name},
             case Event#event.verb of
                 attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of an attack event.
-                    {damage, DamageTaken} = lists:keysearch(damage, 1, Event#event.payload),
+                    {damage, DamageTaken} = lists:keyfind(damage, 1, Event#event.payload),
                     HealthRemaining = Player#pc.health - DamageTaken,
-                    if  HealthRemaining > 0 ->
+                    NewPlayer1 = if HealthRemaining > 0 ->
                             Player#pc{health = HealthRemaining};
-                        HealthRemaining =< 0 ->
+                    HealthRemaining =< 0 ->
                             Player#pc{health = 0}
-                    end;
+                    end,
+                    %% @todo bubble up remaining health to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
                 heal when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a heal event.
-                    {heal, HealthRestored} = lists:keysearch(heal, 1, Event#event.payload),
-                    Player#pc{health = Player#pc.health + HealthRestored};
+                    {heal, HealthRestored} = lists:keyfind(heal, 1, Event#event.payload),
+                    NewPlayer1 = Player#pc{health = Player#pc.health + HealthRestored},
+                    %% @todo bubble up remaining health to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
 				inc_attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a inc_attack event.
-                    {inc_attack, Attackinc} = lists:keysearch(inc_attack, 1, Event#event.payload),
-                    Player#pc{attack = Player#pc.attack + Attackinc};	
+                    {inc_attack, Attackinc} = lists:keyfind(inc_attack, 1, Event#event.payload),
+                    NewPlayer1 = Player#pc{attack = Player#pc.attack + Attackinc},
+                    %% @todo bubble up current attack power to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#pc{room = Event#event.object};
