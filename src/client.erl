@@ -22,7 +22,7 @@ outputloop() ->
 	end.
 
 inputloop(Pid, Username, ConnectPid) ->
-	String = io:get_line( "$" ),
+	String = string:strip(io:get_line( "$" ),both, $\n ),
 	ConnectPid ! {send_input, { Username, parser:parse(String) } },
 	inputloop(Pid, Username, ConnectPid).
 
