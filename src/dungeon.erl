@@ -13,9 +13,10 @@ start(ConfigFileName) ->
 		{ok, RoomConf} ->
 			Dungeon = spawn(fun() -> 
 						process_flag(trap_exit, true),
-						RoomProcs = [room:start(Description) || {room, Description} <- RoomConf],
+						RoomProcs = [room:start(Description) || {room, Description, _Things, _Doors} <- RoomConf],
 						dungeon_loop(RoomProcs, dict:new()) end),
 			register(dungeon, Dungeon),
+			dungeon ! {init, RoomConf},
 			{ok, Dungeon};
 		{error, {Line, Mod, Term}} ->
 			Reason = file:format_error({Line, Mod, Term}),
@@ -41,15 +42,36 @@ merge(ConfigFileName) ->
 				{fail, Error}
 	end.
 
+% rooms
+%
+% Return the list of rooms in the dungeon.
 rooms() ->
 	dungeon ! {rooms, self()},
 	receive
 		Any -> Any
 	end.
 
+% spawn
+%
+% Insert a Thing into a room.
 spawn(Thing, Room) ->
 	dungeon ! {spawn, Thing, Room},
 	{ok}.
+
+h_populate_rooms(Rooms, RoomConf) ->
+	Each = fun(Room) ->
+		{room, _Description, Things, _Doors} = lists:keyfind(Room#room_proc.description, 2, RoomConf),
+		[ dungeon:spawn(object:start(ThingAtom, ThingName, ThingVal, Room), Room) || {ThingAtom, ThingName, ThingVal} <- Things]
+	end,
+	lists:foreach(Each, Rooms).
+
+h_link_rooms(Rooms, RoomConf) ->
+	Each = fun(Room) ->
+		{room, _Description, _Things, Doors} = lists:keyfind(Room#room_proc.description, 2, RoomConf),
+		[ room:makeDoor(Direction, Room, lists:nth(Number, Rooms)) || {Direction, Number} <- Doors]
+	end,
+	lists:foreach(Each, Rooms).
+	
 
 % dungeon_loop
 %
@@ -65,6 +87,10 @@ spawn(Thing, Room) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
+		{init, RoomConf} ->
+			h_populate_rooms(Rooms, RoomConf),
+			h_link_rooms(Rooms, RoomConf),
+			dungeon_loop(Rooms, Connections);
 		{rooms, Sender} ->
 			Sender ! {Rooms},
 			dungeon_loop(Rooms, Connections);
