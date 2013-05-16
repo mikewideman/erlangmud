@@ -99,7 +99,7 @@ dungeon_loop(Rooms, Connections) ->
 		
 		% Propgate input from the client down to the room where the player
 		% is.
-		{Username, Verb, Object} ->
+		{Username, {Verb, Object}} ->
 			server ! {dungeon, ok, input, Username, {Verb, Object}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
 			Input = #input{verb=Verb, subject=PlayerProc, object=Object},
