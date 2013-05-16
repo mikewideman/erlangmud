@@ -17,8 +17,8 @@ outputloop() ->
 	{fail, GameAction} ->
 		io:format(" Your action ~s failed.", [GameAction#action.verb] );
 	{event, Event} ->
-		io:format("New event: \n Verb:~s\nSubject:~s\nObject:~s\n ",
-		  [Event#event.verb, Event#event.subject, Event#event.object])
+		io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
+		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload])
 	end.
 
 inputloop(Pid, Username, ConnectPid) ->

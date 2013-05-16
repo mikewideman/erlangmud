@@ -297,13 +297,13 @@ s_targetInput(Room, Input) ->
 	Verb = Input#input.verb,
 	Subject = Input#input.subject,
 	Object = Input#input.object,
-	ObjectString = hrThingToThing(Room, Object),
-    case ObjectString of
+	ObjectThing = hrThingToThing(Room, Object),
+    case ObjectThing of
         {error, Reason} ->
             {error, {Reason, directObject}};
             %should be in consistent form of 'ok' | {'error', Reason}
         _ ->
-            Action = #action{verb = Verb, subject = Subject, object = Object},
+            Action = #action{verb = Verb, subject = Subject, object = ObjectThing},
             player:performAction(Subject, Action)
     end.
         
@@ -456,7 +456,7 @@ propagateEvent(Room, Event, Excluded) ->
 hrThingToThing(Room, ThingString) ->
 	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
 	N = string:strip(string:to_lower(ThingString)),
-	E = fun({_, _, Name}) -> string:equal(Name, N) end, %an equality function
+	E = fun(Thing) -> string:equal(Thing#thing_proc.name, N) end, %an equality function
 	case lists:filter(E, Room#room.things) of
 		[] -> {error, notInRoom};
 
@@ -483,6 +483,6 @@ actionToEvent(Action) ->
 receive_response(CallId) ->
 	receive
 		{CallId, Any} -> Any
-	after 0 ->
+	after 1000 ->
 		timeout
 	end.

@@ -26,6 +26,7 @@
       {'damage', Damage :: pos_integer()}       %% DamageTaken or DamageDone
     | {'heal', Heal :: pos_integer()}           %% HealAmount or HealthRestored
     | {'inc_attack', Attackinc :: pos_integer()}
+    | {'room_content', ContentString :: [string()]}
     | {atom(), any()}
     .
 %% payload_value() is a type which describes extra data in actions and events.
@@ -50,7 +51,7 @@
 -record(action,
     { verb          :: verb()
     , subject       :: #thing_proc{}
-    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , object        :: #thing_proc{} | #room_proc{}
     , payload = []  :: list(payload_value())
     }).
 
@@ -64,7 +65,7 @@
 -record(event,
     { verb    :: verb()
     , subject       :: #thing_proc{}
-    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , object        :: #thing_proc{} | #room_proc{}
     , payload = []  :: list(payload_value())
     }).
 

@@ -55,6 +55,12 @@ merge(ConfigFileName) ->
 %		Room responses		-> Pass a room response up the chain to the connection.
 dungeon_loop(Rooms, Connections) ->
 	receive
+		{rooms, Sender} ->
+			Sender ! {Rooms},
+			dungeon_loop(Rooms, Connections);
+		{spawn, Thing, Room} ->
+			room:addThing(Room, Thing),
+			dungeon_loop(Rooms, Connections);
 		{merge, NewRooms} ->
 			dungeon_loop(Rooms ++ NewRooms, Connections);
 		{shutdown} ->
@@ -100,7 +106,16 @@ dungeon_loop(Rooms, Connections) ->
 		{error, Any} ->
 			io:format("Dungeon received an error message it didn't understand: ~p~n", [Any]),
 			dungeon_loop(Rooms, Connections);
-		
+	
+		{Username, {look}} ->
+			%server ! {dungeon, ok, input, Username, {Verb, noDirectObject}},
+			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
+			Response = room:look(RoomProc),
+			ResponseStrings = lists:map(fun(Thing) -> Thing#thing_proc.name end, Response),
+			Event = #event{verb=look, subject=PlayerProc, object=RoomProc#room_proc.description, payload=[{room_content, ResponseStrings}]},
+			server ! {dungeon, ok, Username, Event},
+			dungeon_loop(Rooms, Connections);
+
 		% Propgate input from the client down to the room where the player
 		% is.
 		{Username, {Verb, Object}} ->
