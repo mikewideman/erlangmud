@@ -15,14 +15,21 @@
 outputloop() ->
 	receive 
 	{fail, GameAction} ->
-		io:format(" Your action ~s failed.", [GameAction#action.verb] );
+		io:format(" Your action ~s failed.", [GameAction#action.verb] ),
+		outputloop();
 
 	{event, Event} when Event#event.verb == look ->
-		lists:foreach(fun(X)->io:format("~s~n", [X] ) end, Event#event.payload);
+		lists:foreach(fun(X)->io:format(" ~s ~n", [element(2,X)] ) end, Event#event.payload),
+		outputloop();
 
 	{event, Event} ->
-		io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
-		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload])
+		io:format("~s ~ped the ~s", 
+		[Event#event.subject#thing_proc.name, Event#event.verb, Event#event.object#thing_proc.name]),
+		outputloop();
+
+	{chat, Message, Sender} ->
+		io:format("~p whispers: ~p~n", [Sender, Message]),
+		outputloop()
 	end.
 
 inputloop(Pid, Username, ConnectPid) ->
@@ -33,8 +40,18 @@ inputloop(Pid, Username, ConnectPid) ->
 		String == "quit" ->
 			io:format("Exiting...");
 		true ->
-			ConnectPid ! {send_input, { Username, parser:parse(String) } },
-			inputloop(Pid, Username, ConnectPid)
+			Tokens = parser:parse(String),
+			case Tokens of
+				["say", DestUser | Message ] ->
+					ConnectPid ! {send_message, DestUser, string:join(Message, " ")},
+					inputloop(Pid, Username, ConnectPid);
+				[Verb | DirectObject] ->
+					ConnectPid ! {send_input, { Username, {Verb, string:join(DirectObject, " ")} } },
+					inputloop(Pid, Username, ConnectPid);
+				{Verb} ->
+					ConnectPid ! {send_input, { Username, {Verb} } },
+					inputloop(Pid, Username, ConnectPid)
+			end
 	end.
 
 getUserInfo() ->

@@ -1,6 +1,8 @@
 -module(server).
--export([start/1, shutdown/0, startLoop/1, loop/2]).
+-export([start/0, start/1, shutdown/0, startLoop/1, loop/2]).
 
+start()	->
+	start(self()).
 start(_CallbackPid) ->
     ServerPid = spawn(server, startLoop, [_CallbackPid]),
     register(server, ServerPid),
@@ -77,7 +79,7 @@ loop(Dungeon, Clients) ->
 			    SourcePid ! {error, "Could not send message"},
 			    loop(Dungeon, Clients);
 			_Any2 -> 
-			    DestPid ! {Message, SourceUsername},
+			    DestPid ! {chat, Message, SourceUsername},
 			    loop(Dungeon, Clients)
 		    end
 	    end;
@@ -86,6 +88,8 @@ loop(Dungeon, Clients) ->
 	    Result = connectClient(ClientPid, Username, Clients),
 	    case Result of
 		{ok, UpdatedClients} -> 
+		    io:format("Client connection for ~p has been started~n",
+			     [Username]),
 		    loop(Dungeon, UpdatedClients);
 		{error, Reason} ->
 		    ClientPid ! {not_connected, Reason},

@@ -6,3 +6,5 @@ deps
 *.swp
 *.orig
 *.erl~
+*~
+*.dia.autosave
