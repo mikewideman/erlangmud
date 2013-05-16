@@ -235,7 +235,7 @@ s_targetAction(Room, Action) when Action#action.object /= none ->
                 %% Update dungeon's knowledge of character location.
                 dungeon !   { characterMoved
                             , {Action#action.subject, Action#action.object}},
-                { Room#room{things = [Action#action.subject | things]}
+                { Room#room{things = [Action#action.subject | Room#room.things]}
                 , {ok, Action}};
             not is_record(Action#action.object, room_proc) ->
                 %% Object is not a room and Subject is not in this room.
