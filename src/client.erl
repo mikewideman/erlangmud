@@ -27,7 +27,7 @@ inputloop(Pid, Username, ConnectPid) ->
 	inputloop(Pid, Username, ConnectPid).
 
 getUserInfo() ->
-	Uname = string:strip(io:get_line( "Enter username:" ) ),
+	Uname = string:strip(io:get_line( "Enter username:" ), both, $\n ),
 	Server = list_to_atom( string:strip( io:get_line( "Enter server node:"), both, $\n )  ),
 	{Uname, Server}.
 
