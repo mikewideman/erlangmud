@@ -31,19 +31,15 @@ sendMessage(_DestUsername, _Message) ->
 loop(Server, Username, ClientPid, ConnectedToOutput) ->
     receive
 	{send_message, DestUsername, _Message} ->
-	    io:format("sending message"),
 	    Server ! {client, send_message, Username, DestUsername, _Message},
 	    loop(Server, Username, ClientPid,ConnectedToOutput);
 	{ send_input, Message } ->
 		Msg = {client, perform_action, self(), Message},
-		io:format("~p", [Msg] ),
 		Server ! Msg,
 		loop(Server, Username, ClientPid,ConnectedToOutput);
 	{ connect_ui, Pid } ->
-	io:format("connecting ui"),
 		loop(Server, Username, Pid, true);
 	Any ->
-	io:format("base case"),
 		%TODO: only do this if ClientPid is real
 		ClientPid ! Any,
 		loop(Server, Username,ClientPid,ConnectedToOutput)
