@@ -80,7 +80,7 @@ getUserInfo() ->
 	Server = list_to_atom( string:strip( io:get_line( "Enter server node:"), both, $\n )  ),
 	{Uname, Server}.
 welcome() ->
-	String = "~n**Welcome to Erlbeth**~n~nUse commands such as \"attack skeleton,\" \"take key,\" \"say sam hello, sam.\" Try \"look\" to find out where you are.~n",
+	String = "~n**Welcome to Erlbereth**~n~nUse commands such as \"attack skeleton,\" \"take key,\" \"say sam hello, sam.\" Try \"look\" to find out where you are.~n",
 	io:format(String).
 start() ->
 	{Uname, Server} = getUserInfo(),
