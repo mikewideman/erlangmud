@@ -199,7 +199,8 @@ main(Room) ->
 					notInRoom;
 				Thing ->
 					s_leaveGame(Room, Thing)
-			end
+			end,
+			main(Room)
 			
 	after 0 -> main(Room)
 	end.
