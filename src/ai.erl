@@ -44,7 +44,7 @@ start(Name, Health, Attack, Room_proc) ->
 						, pcs =[]
                         , room = Room_proc
                         },
-	Pid = spawn(ai, loop, [ NPC]),
+	Pid = spawn(fun() -> loop(NPC) end),
 	Name = "Evil Dude",
 	#thing_proc{pid=Pid, name=Name}.
 	
