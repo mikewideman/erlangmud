@@ -147,7 +147,9 @@ dungeon_loop(Rooms, Connections) ->
 		{Username, {look}} ->
 			%server ! {dungeon, ok, input, Username, {Verb, noDirectObject}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
+			io:format("Player looking around room: ~p~n",[RoomProc]),
 			Response = room:look(RoomProc),
+			io:format("Room has: ~p~n", [Response]),
 			ResponseStrings = lists:map(fun(Thing) -> Thing#thing_proc.name end, Response),
 			Event = #event{verb=look, subject=PlayerProc, object=RoomProc#room_proc.description, payload=[{room_content, ResponseStrings}]},
 			server ! {dungeon, ok, Username, Event},
