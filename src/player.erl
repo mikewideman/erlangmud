@@ -42,16 +42,27 @@
 %%
 %% @see make_character/4
 %% @end
+start(Name, default, default, Room) ->
+    Player = #pc{name = Name, room = Room},
+    h_start(Player);
+start(Name, default, Attack, Room) ->
+    Player = #pc{name = Name, attack = Attack, room = Room},
+    h_start(Player);
+start(Name, Health, default, Room) ->
+    Player = #pc{name = NAme, health = Health, room = Room},
+    h_start(Player);
 start(Name, Health, Attack, Room) ->
-    Player = #pc { name = Name
-                        , health = Health
-                        , attack = Attack
-                        , room = Room
-                        },
+    Player = #pc{name = Name, health = Health, attack = Attack, room = Room},
+    h_start(Player).
+
+-spec h_start(Player :: #pc{}) -> #thing_proc{}
+%% @doc Given the constructed player record, start the main loop.
+%% @end
+h_start(Player) ->
     #thing_proc { pid = spawn(fun() -> main(Player) end)
                 , id = Player#pc.id
                 , name = Name}.
-
+                
 -spec main  ( Player :: #pc{}) -> no_return().
 %% @doc The main function of a Player. Loops forever so long as the Player does
 %% not die.
