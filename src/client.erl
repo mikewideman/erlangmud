@@ -72,13 +72,16 @@ getUserInfo() ->
 	Uname = string:strip(io:get_line( "Enter username:" ), both, $\n ),
 	Server = list_to_atom( string:strip( io:get_line( "Enter server node:"), both, $\n )  ),
 	{Uname, Server}.
-
+welcome() ->
+	String = "~n**Welcome to Erlbeth**~n~nUse commands such as \"attack skeleton,\" \"take key,\" \"say sam hello, sam.\" Try \"look\" to find out where you are.~n",
+	io:format(String).
 start() ->
 	{Uname, Server} = getUserInfo(),
 	io:format(" Connecting to server ~p ~n", [Server] ),
 	Success = clientConnection:connect(Server, Uname),
 	case Success of
 	{ok, ConnectPid} ->
+		welcome(),
 		Outpid = spawn( client, outputloop, [] ),
 		ConnectPid ! {connect_ui, Outpid},
 		inputloop(Outpid, Uname, ConnectPid);
