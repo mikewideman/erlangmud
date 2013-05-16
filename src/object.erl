@@ -20,18 +20,21 @@
 %%% Public functions %%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec start(Type :: atom(), Name :: string() Value :: any()) -> #thing_proc{}.
+-spec start(Type :: atom(), Name :: string(), Value :: any()) -> #thing_proc{}.
 %% @doc Start an object's process with a given name. The process will run until
 %% the object is interacted with. Returns the thing_proc of the object.
 %% @end
 start(Type, Name, Value)->
-    Proc = case Type of
+    case Type of
         potion ->
             #thing_proc{pid = spawn(fun() -> potionloop(Value) end), name = Name};
+			
         weapon ->
             #thing_proc{pid = spawn(fun() -> weaponloop(Value) end), name = Name};
+			
         _Any ->
             #thing_proc{pid = spawn(fun() -> rockloop() end), name = Name}
+			
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%
@@ -64,9 +67,9 @@ potionloop(HealAmount)->
                                 , payload = [{heal, HealAmount}]});
                 _Any ->
                     %% @todo tell room an invalid verb was sent
-                    potionloop()
+                    potionloop(HealAmount)
             end;
-        _Any-> potionloop()
+        _Any-> potionloop(HealAmount)
     end.
 
 -spec weaponloop(AttackBonus :: pos_integer()) -> no_return().
@@ -86,7 +89,7 @@ weaponloop(AttackBonus) ->
                                 , payload = [{inc_attack, AttackBonus}]});
                 _Any ->
                     %% @todo tell room an invalid verb was sent
-                    potionloop()
+                    weaponloop(AttackBonus)
             end;
-        _Any-> potionloop()
+        _Any-> weaponloop(AttackBonus)
     end.
