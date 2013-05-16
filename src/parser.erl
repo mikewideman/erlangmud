@@ -20,5 +20,5 @@ doParse(Input) ->
 		%just a verb
 		0 -> {string:strip(Input)};
 		%verb and object
-		Pos -> string:tokens(Input, " ")
+		_Pos -> string:tokens(Input, " ")
 	end.
