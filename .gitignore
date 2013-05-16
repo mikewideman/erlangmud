@@ -7,3 +7,4 @@ deps
 *.orig
 *.erl~
 *~
+*.dia.autosave
