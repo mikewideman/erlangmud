@@ -20,5 +20,5 @@ doParse(Input) ->
 		%just a verb
 		0 -> {list_to_atom(string:strip(Input))};
 		%verb and object
-		Pos -> {string:strip(string:sub_string(Input, 1, Pos)), string:strip(string:sub_string(Input, Pos))}
+		Pos -> string:tokens(Input, " ")
 	end.

@@ -15,10 +15,12 @@
 outputloop() ->
 	receive 
 	{fail, GameAction} ->
-		io:format(" Your action ~s failed.", [GameAction#action.verb] );
+		io:format(" Your action ~s failed.", [GameAction#action.verb] ),
+		outputloop();
 	{event, Event} ->
 		io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
-		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload])
+		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload]),
+		outputloop()
 	end.
 
 inputloop(Pid, Username, ConnectPid) ->
@@ -29,8 +31,19 @@ inputloop(Pid, Username, ConnectPid) ->
 		String == "quit" ->
 			io:format("Exiting...");
 		true ->
-			ConnectPid ! {send_input, { Username, parser:parse(String) } },
-			inputloop(Pid, Username, ConnectPid)
+			Tokens = parser:parse(String),
+			case Tokens of
+				["say", DestUser | Message ] ->
+					io:format("~p ~n", [Message]),
+					ConnectPid ! {send_message, DestUser, string:join(Message, " ")},
+					inputloop(Pid, Username, ConnectPid);
+				[Verb | DirectObject] ->
+					ConnectPid ! {send_input, { Username, {Verb, string:join(DirectObject, " ")} } },
+					inputloop(Pid, Username, ConnectPid);
+				{Verb} ->
+					ConnectPid ! {send_input, { Username, {Verb} } },
+					inputloop(Pid, Username, ConnectPid)
+			end
 	end.
 
 getUserInfo() ->
