@@ -95,7 +95,8 @@ dungeon_loop(Rooms, Connections) ->
 			end;
 		
 		% propagate the event to all users who are in that room.
-		{event, {Event, RoomProc}} 		-> propagate_event(Connections, RoomProc, Event),
+		{event, {Event, RoomProc}} 		-> io:format("Event: ~p ~p~n", [Event, RoomProc]),
+										   propagate_event(Connections, RoomProc, Event),
 										   dungeon_loop(Rooms, Connections);
 
 		% player moved to a different room, update
