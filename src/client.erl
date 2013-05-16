@@ -30,9 +30,14 @@ outputloop() ->
 		end,
 		outputloop();
 
-	{event, Event} ->
+	{event, Event} when is_record(Event#event.object, thing_proc) ->
 		io:format("~s ~ped the ~s", 
 		[Event#event.subject#thing_proc.name, Event#event.verb, Event#event.object#thing_proc.name]),
+		outputloop();
+        
+    {event, Event} when is_record(Event#event.object, room_proc) ->
+		io:format("~s ~ped the ~s", 
+		[Event#event.subject#thing_proc.name, Event#event.verb, Event#event.object#room_proc.description]),
 		outputloop();
 
 	{chat, Message, Sender} ->
