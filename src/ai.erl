@@ -45,7 +45,7 @@ start(Name, Health, Attack, Room_proc) ->
                         , room = Room_proc
                         },
 	Pid = spawn(fun() -> loop(NPC) end),
-	Name = "Evil Dude",
+	% Name = "Evil Dude",
 	#thing_proc{pid=Pid, name=Name}.
 	
 %%% Creates an Hostile NPC and sends it back to the room	
