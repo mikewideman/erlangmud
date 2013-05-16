@@ -51,7 +51,7 @@
 -record(action,
     { verb          :: verb()
     , subject       :: #thing_proc{}
-    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , object        :: #thing_proc{} | #room_proc{}
     , payload = []  :: list(payload_value())
     }).
 
@@ -65,7 +65,7 @@
 -record(event,
     { verb    :: verb()
     , subject       :: #thing_proc{}
-    , object        :: #thing_proc{} | #room_proc{} %% @todo | #item_proc{}
+    , object        :: #thing_proc{} | #room_proc{}
     , payload = []  :: list(payload_value())
     }).
 
