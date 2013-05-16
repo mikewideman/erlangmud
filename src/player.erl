@@ -116,7 +116,7 @@ main(Player) when Player#pc.health > 0 ->
             case Event#event.verb of
                 attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of an attack event.
-                    {damage, DamageTaken} = lists:keysearch(damage, 1, Event#event.payload),
+                    {damage, DamageTaken} = lists:keyfind(damage, 1, Event#event.payload),
                     HealthRemaining = Player#pc.health - DamageTaken,
                     if  HealthRemaining > 0 ->
                             Player#pc{health = HealthRemaining};
@@ -125,11 +125,11 @@ main(Player) when Player#pc.health > 0 ->
                     end;
                 heal when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a heal event.
-                    {heal, HealthRestored} = lists:keysearch(heal, 1, Event#event.payload),
+                    {heal, HealthRestored} = lists:keyfind(heal, 1, Event#event.payload),
                     Player#pc{health = Player#pc.health + HealthRestored};
 				inc_attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a inc_attack event.
-                    {inc_attack, Attackinc} = lists:keysearch(inc_attack, 1, Event#event.payload),
+                    {inc_attack, Attackinc} = lists:keyfind(inc_attack, 1, Event#event.payload),
                     Player#pc{attack = Player#pc.attack + Attackinc};	
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
