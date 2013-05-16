@@ -19,7 +19,8 @@ outputloop() ->
 		outputloop();
 
 	{event, Event} when Event#event.verb == look ->
-		lists:foreach(fun(X)->io:format(" ~s ~n", [element(2,X)] ) end, Event#event.payload);
+		lists:foreach(fun(X)->io:format(" ~s ~n", [element(2,X)] ) end, Event#event.payload),
+		outputloop();
 
 	{event, Event} ->
 		io:format("~s ~ped the ~s", 
