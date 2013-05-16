@@ -86,6 +86,8 @@ loop(Dungeon, Clients) ->
 	    Result = connectClient(ClientPid, Username, Clients),
 	    case Result of
 		{ok, UpdatedClients} -> 
+		    io:format("Client connection for ~p has been started~n",
+			     [Username]),
 		    loop(Dungeon, UpdatedClients);
 		{error, Reason} ->
 		    ClientPid ! {not_connected, Reason},
