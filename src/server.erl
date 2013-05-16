@@ -97,15 +97,23 @@ loop(Dungeon, Clients) ->
 	    end;
 
 	{client, disconnect, ClientPid} ->
+	    Username = getUsername(ClientPid, Clients),
+	    io:format("Disconnecting client ~p (~p)~n", [Username, ClientPid]),
 	    UpdatedClients = disconnectClient(ClientPid, Clients),
 	    ClientPid ! {disconnected},
 	    loop(Dungeon, UpdatedClients);
 
 	{client, who_is_on, ClientPid} ->
+	    Username = getUsername(ClientPid, Clients),
+	    io:format("~p (~p) wants to know who is currently playing~n",
+		      [Username, ClientPid]),
 	    ClientPid ! {users, getUsernames(Clients)},
 	    loop(Dungeon, Clients);
 
-	{client, perform_action, _ClientPid, GameAction} ->
+	{client, perform_action, ClientPid, GameAction} ->
+	    Username = getUsername(ClientPid, Clients),
+	    io:format("~p (~p) is attempting to: ~p~n",
+		      [Username, ClientPid, GameAction]),
 	    Dungeon ! GameAction,
 	    loop(Dungeon, Clients);
 	
@@ -195,6 +203,8 @@ loop(Dungeon, Clients) ->
 		    loop(Dungeon, Clients);
 		_Any ->
 		    ClientPid ! {event, Event}, % TODO: Make sure client handles this properly
+		    io:format("Event ~p was sent to ~p (~p)~n",
+			     [Event, Username, ClientPid]),
 		    loop(Dungeon, Clients)
 	    end;
 
@@ -214,11 +224,12 @@ loop(Dungeon, Clients) ->
 	    end;
 
 	{shutdown, _Reason} ->
+	    io:format("Received shutdown message.~n"),
 	    closeConnections(Clients, _Reason);
 
 	_Any ->
 	    io:format("Unrecognized message ~p received~n", [_Any]),
-		loop(Dungeon, Clients)
+	    loop(Dungeon, Clients)
     end.	  
 
 
