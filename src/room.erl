@@ -461,6 +461,10 @@ propagateEvent(Room, Event, Excluded) ->
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
+hrThingToThing(Room, "north door") -> Room#room.north_door;
+hrThingToThing(Room, "south door") -> Room#room.south_door ;
+hrThingToThing(Room, "east door") -> Room#room.east_door ;
+hrThingToThing(Room, "west door") -> Room#room.west_door;
 hrThingToThing(Room, ThingString) ->
 	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
 	N = string:strip(string:to_lower(ThingString)),
