@@ -24,6 +24,10 @@ outputloop() ->
 	{event, Event} ->
 		io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
 		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload]),
+		outputloop();
+
+	{chat, Message, Sender} ->
+		io:format("~p whispers: ~p~n", [Sender, Message]),
 		outputloop()
 	end.
 
@@ -38,7 +42,6 @@ inputloop(Pid, Username, ConnectPid) ->
 			Tokens = parser:parse(String),
 			case Tokens of
 				["say", DestUser | Message ] ->
-					io:format("~p ~n", [Message]),
 					ConnectPid ! {send_message, DestUser, string:join(Message, " ")},
 					inputloop(Pid, Username, ConnectPid);
 				[Verb | DirectObject] ->
