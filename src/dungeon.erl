@@ -97,6 +97,10 @@ dungeon_loop(Rooms, Connections) ->
 		{'EXIT', _, _} ->
 			dungeon_loop(Rooms, Connections);
 		
+		{error, Any} ->
+			io:format("Dungeon received an error message it didn't understand: ~p~n", [Any]),
+			dungeon_loop(Rooms, Connections);
+		
 		% Propgate input from the client down to the room where the player
 		% is.
 		{Username, {Verb, Object}} ->
