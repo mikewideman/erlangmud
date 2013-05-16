@@ -38,6 +38,10 @@ start(Type, Name, Value, Room_Proc)->
             #thing_proc { pid = spawn(fun() -> weaponloop(Value, Room_Proc) end)
                         , name = Name};
 			
+	pickable ->
+            #thing_proc { pid = spawn(fun() -> pickableloop(Room_Proc) end)
+                        , name = Name};
+		
         _Any ->
             #thing_proc { pid = spawn(fun() -> rockloop() end)
                         , name = Name}
@@ -56,6 +60,18 @@ rockloop() ->
         _Any -> rockloop()
     end.
 
+pickableloop(Room_Proc) ->
+    receive
+        Event when  is_record(Event, event)  andalso Event#event.object#thing_proc.pid == self() andalso Event#event.verb == take ->
+			    room:broadcast
+			( Room_Proc
+			, #event{ verb = take
+				, subject = Event#event.object
+				, object = Event#event.subject
+			       }
+			, Event#event.object);
+        _Any-> pickableloop(Room_Proc)
+    end.
 -spec potionloop( HealAmount    :: pos_integer()
                 , Room_Proc     :: #room_proc{}
                 ) -> no_return().

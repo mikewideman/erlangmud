@@ -148,6 +148,7 @@ removeDoor(Direction, ThisRoom, OtherRoom) ->
 %% @doc The main function of a room process. Loops forever.
 %% @end
 main(Room) ->
+	%io:format("THE ROOM: ~p~n", [Room]),
 	receive
 		{Sender, targetAction, Id, Action} when is_record(Action, action) ->
 		    	{NewRoom, Message} = s_targetAction(Room, Action),
