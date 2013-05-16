@@ -35,7 +35,7 @@ outputloop() ->
         {health, Health} = lists:keyfind(health, 1, Event#event.payload),
         {attack, Attack} = lists:keyfind(attack, 1, Event#event.payload),
         io:format   ( "~s's current status is:~nHealth: ~p~nAttack: ~p~n"
-                    , [Event#event.object, Health, Attack]),
+                    , [Event#event.subject#thing_proc.name, Health, Attack]),
         outputloop();
 
 	{event, Event} when is_record(Event#event.object, thing_proc) ->
