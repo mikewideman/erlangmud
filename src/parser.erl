@@ -18,7 +18,7 @@ parse(Input) ->
 doParse(Input) ->
 	case string:str(Input, " ") of
 		%just a verb
-		0 -> {list_to_atom(string:strip(Input))};
+		0 -> {string:strip(Input)};
 		%verb and object
 		Pos -> string:tokens(Input, " ")
 	end.
