@@ -1,20 +1,27 @@
 -module(clientConnection).
--export([startConnection/2, connect/2, loop/4, sendMessage/2]).
+-export([startConnection/3, connect/2, loop/4, sendMessage/2]).
 
 connect(Server, Username) ->
-    ClientPid = spawn(clientConnection, startConnection, [Server, Username]),
-    register(client, ClientPid),
-    {ok, ClientPid}.
+    ClientPid = spawn(clientConnection, startConnection, [Server, Username, self()]),
+    receive 
+	{connected} -> 
+    	    register(client, ClientPid),
+    	    {ok, ClientPid};
+	_ ->
+	    {failed}
+    end.
     
-startConnection(ServerAddr, Username) ->
+startConnection(ServerAddr, Username, StartedFrom) ->
     Success = net_kernel:connect_node(ServerAddr),
     case Success of
 	true -> 
+	    StartedFrom ! {connected},
 	    Server = {server, ServerAddr},
 	    Server ! {client, connect, self(), Username},
 	    loop(Server, Username, 0, false),
 	    {ok};
 	_ -> 
+	    StartedFrom ! {failed},
 	    {fail, "Unable to connect to server " ++ ServerAddr}
     end.
 
