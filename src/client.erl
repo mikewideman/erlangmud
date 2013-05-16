@@ -13,6 +13,7 @@
 
 
 outputloop() ->
+	io:format("~n"),
 	receive 
 	{fail, GameAction} ->
 		io:format(" Your action ~s failed.", [GameAction#action.verb] ),
