@@ -70,13 +70,13 @@ loop(Dungeon, Clients) ->
 		    io:format("Unknown user ~p tried to send a message to ~p~n",
 			     [SourceUsername, DestUsername]),
 		    loop(Dungeon, Clients);
-		_Any ->
+		_Any1 ->
 		    DestPid = getPidForUser(DestUsername, Clients),
-		    case DestPid of		
+		    case DestPid of	
 			username_not_found -> 
 			    SourcePid ! {error, "Could not send message"},
 			    loop(Dungeon, Clients);
-			_Any -> 
+			_Any2 -> 
 			    DestPid ! {Message, SourceUsername},
 			    loop(Dungeon, Clients)
 		    end
