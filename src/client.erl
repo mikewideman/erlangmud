@@ -19,11 +19,11 @@ outputloop() ->
 		outputloop();
 
 	{event, Event} when Event#event.verb == look ->
-		lists:foreach(fun(X)->io:format("~s~n", [X] ) end, Event#event.payload);
+		lists:foreach(fun(X)->io:format(" ~s ~n", [element(2,X)] ) end, Event#event.payload);
 
 	{event, Event} ->
-		io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
-		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload]),
+		io:format("~s ~ped the ~s", 
+		[Event#event.subject#thing_proc.name, Event#event.verb, Event#event.object#thing_proc.name]),
 		outputloop();
 
 	{chat, Message, Sender} ->
