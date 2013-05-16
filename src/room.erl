@@ -217,7 +217,7 @@ main(Room) ->
 %% to the character that caused it as well. If necessary, update the state
 %% of the room. Return the room state and the acknowledgement message.
 %% @end
-s_targetAction(Room, Action) when Action#action.object /= none ->
+s_targetAction(Room, Action) when is_record(Room, room) andalso Action#action.object /= none ->
 	%% Check for Subject's presence in room.
     %% @todo Update if subjects are capable of not being characters.
     TheSubject = lists:keyfind  ( Action#action.subject#thing_proc.id
