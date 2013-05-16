@@ -21,7 +21,6 @@ outputloop() ->
 	{event, Event} when Event#event.verb == look ->
 		io:format("~s.~n", [Event#event.object]),
 		{_,Items} = lists:keyfind(room_content, 1, Event#event.payload),
-		%io:format("ITEMS:~p~n",[Items]),
 		if
 			length(Items) > 1 ->
 				io:format("You see:~n", []),

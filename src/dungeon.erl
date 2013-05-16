@@ -155,8 +155,11 @@ dungeon_loop(Rooms, Connections) ->
 %
 % Push an event up to all the users who were in the room when it occured.
 propagate_event(Connections, RoomProc, Event) ->
+	io:format("Propagate~n"),
 	ConnectionList = dict:to_list(Connections),
-	[server ! {dungeon, ok, Username, Event} || {Username, Room} <- ConnectionList, Room == RoomProc].
+	UsersToMessage = [{U, {T, R}} || {U, {T, R}} <- ConnectionList, R#room_proc.id == RoomProc#room_proc.id],
+	io:format("~p~n", [UsersToMessage]),
+	[server ! {dungeon, ok, Username, Event} || {Username, _Room} <- UsersToMessage].
 
 % move_player
 %
@@ -177,7 +180,8 @@ move_player(Connections, PlayerProc, RoomProc) ->
 % and insert the player into a randomly selected
 % starting room.
 connect_player(Connections, Username, Rooms) ->
-	StartingRoom = lists:nth(random:uniform(length(Rooms)), Rooms),
+	% StartingRoom = lists:nth(random:uniform(length(Rooms)), Rooms),
+	StartingRoom = lists:nth(1, Rooms),
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		true -> {error, "Username already in the dungeon."};
