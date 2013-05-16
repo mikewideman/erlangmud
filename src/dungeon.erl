@@ -127,7 +127,7 @@ dungeon_loop(Rooms, Connections) ->
 
 		% player moved to a different room, update
 		% the connection map.
-		{characterMoved, PlayerProc, RoomProc} ->
+		{characterMoved, {PlayerProc, RoomProc}} ->
 			Result = move_player(Connections, PlayerProc, RoomProc),
 			case Result of
 				{ok, NewConnections} 	-> dungeon_loop(Rooms, NewConnections);
@@ -196,7 +196,7 @@ move_player(Connections, PlayerProc, RoomProc) ->
 	Result = dict:is_key(Username, Connections),
 	case Result of
 		false -> {error, "Username not in the dungeon"};
-		true -> NewConnections = dict:update(Username, {PlayerProc, RoomProc}),
+		true -> NewConnections = dict:store(Username, {PlayerProc, RoomProc}, Connections),
 				{ok, NewConnections}
 	end.
 
