@@ -18,7 +18,7 @@ outputloop() ->
 		io:format(" Your action ~s failed.", [GameAction#action.verb] );
 
 	{event, Event} when Event#event.verb == look ->
-		lists:foreach(fun(X)->io:format("~s~n", [X] ) end, Event#event.payload);
+		lists:foreach(fun(X)->io:format(" ~s ~n", [element(2,X)] ) end, Event#event.payload);
 
 	{event, Event} ->
 		%io:format("New event: ~n Verb:~p~nSubject:~p~nObject:~p~nPayload:~p~n",
