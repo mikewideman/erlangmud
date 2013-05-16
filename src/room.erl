@@ -217,7 +217,7 @@ main(Room) ->
 %% to the character that caused it as well. If necessary, update the state
 %% of the room. Return the room state and the acknowledgement message.
 %% @end
-s_targetAction(Room, Action) ->
+s_targetAction(Room, Action) when Action#action.object /= none ->
 	%% Check for Subject's presence in room.
     %% @todo Update if subjects are capable of not being characters.
     TheSubject = lists:keyfind  ( Action#action.subject#thing_proc.id
@@ -284,7 +284,9 @@ s_targetAction(Room, Action) ->
                     {Room, {error, {notInRoom, Action#action.object}}}
                 end
             end
-	end.
+	end;
+s_targetAction(Room, Action) when Action#action.object == none ->
+    {Room, {error, {noSuchDoor}}}.
 
 -spec s_targetInput ( Room :: #room_proc{}
                     , Input :: #input{}
@@ -457,7 +459,8 @@ propagateEvent(Room, Event, Excluded) ->
                         , ThingString :: string()
                         ) ->      {'error', 'notInRoom'}
                                 | {'error', 'multipleMatches'}
-                                | #thing_proc{}.
+                                | #thing_proc{}
+                                | #room_proc{}.
 %% @doc Get a thing in the room by its name.
 %% possible errors are {error, Reason} where Reason is notInRoom or multipleMatches}
 %% @end
