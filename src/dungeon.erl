@@ -105,7 +105,8 @@ dungeon_loop(Rooms, Connections) ->
 			%server ! {dungeon, ok, input, Username, {Verb, noDirectObject}},
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
 			Response = room:look(RoomProc),
-			Event = {look, PlayerProc, RoomProc#room_proc.description, [Response]},
+			ResponseStrings = lists:map(fun(Thing) -> Thing#thing_proc.name end, Response),
+			Event = #event{verb=look, subject=PlayerProc, object=RoomProc#room_proc.description, payload=[{room_content, ResponseStrings}]},
 			server ! {dungeon, ok, Username, Event},
 			dungeon_loop(Rooms, Connections);
 
