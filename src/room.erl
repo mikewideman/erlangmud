@@ -255,14 +255,19 @@ s_targetAction(Room, Action) ->
                         {Room, {error, {notInRoom, TheObject}}};
                     Object ->
                         Event = actionToEvent(Action),
-                        Propogate = fun(Thing) ->
-                            if Thing /= Object ->
-                                thing:receiveEventNotification(Object, Event);
-                            Thing == Object ->
-                                skip
-                            end
-                        end,
-                        lists:foreach(Propogate, Room#room.things),
+                        Room_Proc = #room_proc  { pid = self()
+                                                , id = Room#room.id
+                                                , description = Room#room.description
+                                                },
+                        % Propogate = fun(Thing) ->
+                            % if Thing /= Object ->
+                                % thing:receiveEventNotification(Object, Event);
+                            % Thing == Object ->
+                                % skip
+                            % end
+                        % end,
+                        % lists:foreach(Propogate, Room#room.things),
+                        propagateEvent(Room_Proc, Event, Action#action.subject),
                         {Room, {ok, Action}}
                 end;
             is_record(Action#action.object, room_proc) ->
@@ -435,14 +440,14 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
 %% occurring as well.
 %% @end
 propagateEvent(Room, Event, Excluded) ->
-    Propogate = fun(Thing, ExcludedThing) ->
+    Propagate = fun(Thing, ExcludedThing) ->
         if Thing /= ExcludedThing ->
             thing:receiveEventNotification(Thing, Event);
         Thing == ExcludedThing ->
             skip
         end
     end,
-    lists:foreach(fun(T) -> Propogate(T, Excluded) end, Room#room.things),
+    lists:foreach(fun(T) -> Propagate(T, Excluded) end, Room#room.things),
     dungeon ! {event, {Event, Room}}.
 
 -spec hrThingToThing    ( Room :: #room{}
