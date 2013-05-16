@@ -208,10 +208,10 @@ main(Room) ->
 %%% Private functions %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
--spec s_targetAction    ( Room :: #room{}
-                        , Action :: #action{}
-                        ) ->      {#room{}, {'ok', #action{}}}
-                                | {#room{}, {'error', term()}}.
+-spec s_targetAction    ( Room      :: #room{}
+                        , Action    :: #action{}
+                        ) ->  {#room{}, {'ok', #action{}}}
+                            | {#room{}, {'error', term()}}.
 %% @doc Validate the Action and turn it into an Event, and notify every thing
 %% in the room that the Event occurred. Acknowledge the validity of the Action
 %% to the character that caused it as well. If necessary, update the state
@@ -253,12 +253,8 @@ s_targetAction(Room, Action) ->
                 case TheObject of
                     false ->
                         {Room, {error, {notInRoom, TheObject}}};
-                    Object ->
+                    _Object ->
                         Event = actionToEvent(Action),
-                        Room_Proc = #room_proc  { pid = self()
-                                                , id = Room#room.id
-                                                , description = Room#room.description
-                                                },
                         % Propogate = fun(Thing) ->
                             % if Thing /= Object ->
                                 % thing:receiveEventNotification(Object, Event);
@@ -267,7 +263,7 @@ s_targetAction(Room, Action) ->
                             % end
                         % end,
                         % lists:foreach(Propogate, Room#room.things),
-                        propagateEvent(Room_Proc, Event, Action#action.subject),
+                        propagateEvent(Room, Event, TheSubject),
                         {Room, {ok, Action}}
                 end;
             is_record(Action#action.object, room_proc) ->
@@ -431,7 +427,7 @@ s_removeDoor(Direction, ThisRoom, OtherRoom) ->
                     
 %%%HELPER%%%
 
--spec propagateEvent    ( Room          :: #room_proc{}
+-spec propagateEvent    ( Room          :: #room{}
                         , Event         :: #event{}
                         , Excluded      :: #thing_proc{} | 'none'
                         ) -> any().
