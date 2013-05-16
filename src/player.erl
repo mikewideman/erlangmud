@@ -80,8 +80,8 @@ main(Player) when Player#pc.health > 0 ->
                     %% Got a command to perform an enter action.
                     %% No need to add payload.
                     Action;
-                pick_up ->
-                    %% Got a command to perform a pick_up action.
+                take ->
+                    %% Got a command to perform a take action.
                     %% No need to add payload.
                     Action;
                 drink ->
@@ -97,24 +97,29 @@ main(Player) when Player#pc.health > 0 ->
                 {error, {notInRoom, Subject}} ->
                     %% This player is not in the room which told the player to
                     %% perform this action.
-                    %% @todo Any need to change state?
                     Player;
+                    %% @todo bubble error message up to client
                 {error, {notInRoom, Object}} ->
                     %% The object of the action is not in the room which told
                     %% the player to perform this action.
-                    %% @todo Any need to change state?
                     Player;
+                    %% @todo bubble error message up to client
                 {ok, ActionToSend} ->
-                    % The action was successful.
-                    %% @todo
+                    %% The action was successful.
                     case ActionToSend#action.verb of
                         attack ->
-                            %% Attack succeeded.
-                            %% @todo Any need to change state?
+                            %% Successfully attacked.
                             Player;
                         enter ->
                             %% Successfully entered new room.
+                            %% @todo this is redundant with the event receive
                             Player#pc{room = ActionToSend#action.object};
+                        take ->
+                            %% Successfully took a weapon.
+                            Player;
+                        drink ->
+                            %% Successfully drank a potion.
+                            Player;
                         _SentVerb ->
                             %% Some other successful action.
                             Player
@@ -134,14 +139,17 @@ main(Player) when Player#pc.health > 0 ->
                         HealthRemaining =< 0 ->
                             Player#pc{health = 0}
                     end;
+                    %% @todo bubble up remaining health to client
                 heal when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a heal event.
                     {heal, HealthRestored} = lists:keyfind(heal, 1, Event#event.payload),
                     Player#pc{health = Player#pc.health + HealthRestored};
+                    %% @todo bubble up remaining health to client
 				inc_attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a inc_attack event.
                     {inc_attack, Attackinc} = lists:keyfind(inc_attack, 1, Event#event.payload),
                     Player#pc{attack = Player#pc.attack + Attackinc};	
+                    %% @todo bubble up current attack power to client
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#pc{room = Event#event.object};
@@ -149,6 +157,7 @@ main(Player) when Player#pc.health > 0 ->
                     %% Notified of a died event.
                     %% @todo Any need to change state?
                     Player;
+                    %% @todo bubble up death message to client
                 _Verb ->
                     %% Notified of some other event.
                     Player
