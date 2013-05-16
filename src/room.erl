@@ -476,13 +476,13 @@ actionToEvent(Action) ->
 		payload=Action#action.payload
 		}.
 
--spec receive_response(CallId :: reference()) -> 'timeout' | any().
+-spec receive_response(CallId :: reference()) -> {CallId, 'timeout' | any()}.
 %% @doc Wait for an incoming message and return it as a return value.
 %% pass a unique reference. It will assume the return message (from the main loop) returns in the form {id, Result} where id is the same as the one passed into the response. This will only receive a response with a matching id.
 %% @end
 receive_response(CallId) ->
 	receive
-		{CallId, Any} -> Any
+		{CallId, Response} -> {CallId, Response}
 	after 0 ->
-		timeout
+		{CallId, timeout}
 	end.
