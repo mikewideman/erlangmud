@@ -16,6 +16,9 @@ outputloop() ->
 	receive 
 	{fail, GameAction} ->
 		io:format(" Your action ~s failed.", [GameAction#action.verb] );
+	{event, Event} when Event#event.verb == look ->
+		io:format(Event#event.payload),
+		io:format("\n");
 	{event, Event} ->
 		io:format("New event: \n Verb:~p\nSubject:~p\nObject:~p\n\nPayload:~p\n ",
 		  [Event#event.verb, Event#event.subject, Event#event.object, Event#event.payload])
