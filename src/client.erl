@@ -31,8 +31,8 @@ outputloop() ->
 		outputloop();
 
 	{event, Event} when is_record(Event#event.object, thing_proc) ->
-		io:format("~s ~ped the ~s", 
-		[Event#event.subject#thing_proc.name, Event#event.verb, Event#event.object#thing_proc.name]),
+		io:format("~s ~sed the ~s", 
+		[Event#event.subject#thing_proc.name, atom_to_list(Event#event.verb), Event#event.object#thing_proc.name]),
 		outputloop();
         
     {event, Event} when is_record(Event#event.object, room_proc) ->
@@ -59,10 +59,10 @@ inputloop(Pid, Username, ConnectPid) ->
 					ConnectPid ! {send_message, DestUser, string:join(Message, " ")},
 					inputloop(Pid, Username, ConnectPid);
 				[Verb | DirectObject] ->
-					ConnectPid ! {send_input, { Username, {Verb, string:join(DirectObject, " ")} } },
+					ConnectPid ! {send_input, { Username, {list_to_atom(Verb), string:join(DirectObject, " ")} } },
 					inputloop(Pid, Username, ConnectPid);
 				{Verb} ->
-					ConnectPid ! {send_input, { Username, {Verb} } },
+					ConnectPid ! {send_input, { Username, {list_to_atom(Verb)} } },
 					inputloop(Pid, Username, ConnectPid)
 			end
 	end.
