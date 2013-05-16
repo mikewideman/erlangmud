@@ -263,7 +263,7 @@ s_targetAction(Room, Action) ->
                             % end
                         % end,
                         % lists:foreach(Propogate, Room#room.things),
-                        propagateEvent(Room, Event, Action#action.subject),
+                        propagateEvent(Room, Event, TheSubject),
                         {Room, {ok, Action}}
                 end;
             is_record(Action#action.object, room_proc) ->
