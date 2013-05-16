@@ -30,6 +30,13 @@ outputloop() ->
 				io:format("There is nothing here~n",[])
 		end,
 		outputloop();
+    
+    {event, Event} when Event#event.verb == display_status ->
+        {health, Health} = lists:keyfind(health, 1, Event#event.payload),
+        {attack, Attack} = lists:keyfind(attack, 1, Event#event.payload),
+        io:format   ( "~s's current status is:~nHealth: ~p~nAttack: ~p~n"
+                    , [Event#event.object, Health, Attack]),
+        outputloop();
 
 	{event, Event} when is_record(Event#event.object, thing_proc) ->
 		io:format("~s ~sed the ~s", 
