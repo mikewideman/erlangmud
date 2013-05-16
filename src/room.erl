@@ -167,7 +167,7 @@ main(Room) ->
 		{Sender, leaveGame, Id, Player} ->
 			Rm = case s_leaveGame(Room, Player) of
 				{error, Reason} -> Sender ! {Id, {error, Reason}}, Room;
-				{ok, NewRoom} -> Sender ! {Id, ok}, NewRoom
+				{ok, NewRoom} -> Sender ! {Id, {ok}}, NewRoom
 			end,
 			main(Rm);
 		{Sender, makeDoor, Id, Direction, OtherRoom} ->

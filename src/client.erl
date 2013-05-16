@@ -30,6 +30,13 @@ outputloop() ->
 				io:format("There is nothing here~n",[])
 		end,
 		outputloop();
+    
+    {event, Event} when Event#event.verb == display_status ->
+        {health, Health} = lists:keyfind(health, 1, Event#event.payload),
+        {attack, Attack} = lists:keyfind(attack, 1, Event#event.payload),
+        io:format   ( "~s's current status is:~nHealth: ~p~nAttack: ~p~n"
+                    , [Event#event.object, Health, Attack]),
+        outputloop();
 
 	{event, Event} when is_record(Event#event.object, thing_proc) ->
 		io:format("~s ~sed the ~s", 
@@ -72,13 +79,16 @@ getUserInfo() ->
 	Uname = string:strip(io:get_line( "Enter username:" ), both, $\n ),
 	Server = list_to_atom( string:strip( io:get_line( "Enter server node:"), both, $\n )  ),
 	{Uname, Server}.
-
+welcome() ->
+	String = "~n**Welcome to Erlbeth**~n~nUse commands such as \"attack skeleton,\" \"take key,\" \"say sam hello, sam.\" Try \"look\" to find out where you are.~n",
+	io:format(String).
 start() ->
 	{Uname, Server} = getUserInfo(),
 	io:format(" Connecting to server ~p ~n", [Server] ),
 	Success = clientConnection:connect(Server, Uname),
 	case Success of
 	{ok, ConnectPid} ->
+		welcome(),
 		Outpid = spawn( client, outputloop, [] ),
 		ConnectPid ! {connect_ui, Outpid},
 		inputloop(Outpid, Uname, ConnectPid);
