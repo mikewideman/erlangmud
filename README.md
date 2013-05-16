@@ -19,6 +19,7 @@ If you specify an incorrect value in your command, or type an invalid command, y
 ### Examples of Actions
 
 * `look`: Examine the contents of the room.
+* `say <player> <message>`: Whisper a message to a player in the room. Specify the player by typing their name, and write whatever you like in the message, but please be polite.
 * `enter <direction> door`: Enter the door (to another room) of the specified direction. Specify the direction by typing one of the following: `north`, `east`, `south`, `west`.
 * `attack <target>`: Attack the specified target (i.e. an NPC or another PC). Specify the target by typing its name.
 * `take <weapon>`: Pick up a weapon in the room to receive an attack bonus. Specify the weapon by typing its name.
