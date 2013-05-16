@@ -26,27 +26,41 @@ If you specify an incorrect value in your command, or type an invalid command, y
 * `drink <potion>`: Drink a potion in the room to restore lost health. Specify the potion by typing its name.
 
 
-## Starting the Server
-Right now, the processes can run inside erlang shells. 
-Start one shell, which we will call the server.
+## Running the Game
+
+### Starting the Server
+
+The game must currently be run from the erlang shell (`erl`, `werl` etc.)
+
+Start one shell, which we will call the server:
+
 	erl -sname server
-If you have not already done so, compile everything
+
+If you have not already done so, compile everything:
+
 	make:all().
-And start the server process
+
+And start the server process:
+
 	server:start().
+
 The Dungeon will automatically start up a basic game.
 
-## Connecting to the Server
-Now start a second shell, which we will call a client
+### Connecting to the Server
+
+Now start a second shell, which we will call a client:
+
 	erl -sname client1
 	client:start().
-You may start more clients if you wish.
+
+You will be prompted to enter a username and a host. The name `server` is registered for the server process, so you may specify `server@<hostname>`.
 
 
+### Game Configuration
 
-## Game Configuration
+The game configuration is available in `dungeon.conf`. The configuration file must contain a series of `#room{}` records, one on each line. If you desire to modify it, study the `room.erl` module, where you will find the `#room{}` record.
 
-
+The configuration file is loaded by the `dungeon.erl` module when the server is started.
 
 
 
