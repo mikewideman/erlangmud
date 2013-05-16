@@ -21,10 +21,11 @@ outputloop() ->
 	{event, Event} when Event#event.verb == look ->
 		io:format("~s.~n", [Event#event.object]),
 		{_,Items} = lists:keyfind(room_content, 1, Event#event.payload),
+		%io:format("ITEMS:~p~n",[Items]),
 		if
 			length(Items) > 1 ->
 				io:format("You see:~n", []),
-				lists:foreach(fun(X)->io:format("* ~s \r\n", [element(2,X)] ) end, Items);
+				lists:foreach(fun(X)->io:format("* ~s \r\n", [X] ) end, Items);
 			true	->
 				io:format("There is nothing here~n",[])
 		end,
