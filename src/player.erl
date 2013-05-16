@@ -104,6 +104,11 @@ main(Player) when Player#pc.health > 0 ->
                     %% the player to perform this action.
                     Player;
                     %% @todo bubble error message up to client
+                {error, {noSuchDoor}} ->
+                    %% The object of the action is a door which does not exist.
+                    %% E.g., the door is 'none'.
+                    Player;
+                    %% @todo bubble error message up to client
                 {ok, ActionToSend} ->
                     %% The action was successful.
                     case ActionToSend#action.verb of
