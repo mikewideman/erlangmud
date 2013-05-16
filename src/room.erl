@@ -444,7 +444,7 @@ propagateEvent(Room, Event, Excluded) ->
         end
     end,
     lists:foreach(fun(T) -> Propagate(T, Excluded) end, Room#room.things),
-    Room_Proc = #room_proc  { pid = self(),
+    Room_Proc = #room_proc  { pid = self()
                             , id = Room#room.id
                             , description = Room#room.description},
     dungeon ! {event, {Event, Room_Proc}}.
