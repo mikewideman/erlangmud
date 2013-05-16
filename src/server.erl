@@ -1,6 +1,8 @@
 -module(server).
--export([start/1, shutdown/0, startLoop/1, loop/2]).
+-export([start/0, start/1, shutdown/0, startLoop/1, loop/2]).
 
+start()	->
+	start(self()).
 start(_CallbackPid) ->
     ServerPid = spawn(server, startLoop, [_CallbackPid]),
     register(server, ServerPid),
