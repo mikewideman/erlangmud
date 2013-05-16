@@ -5,7 +5,7 @@
 %%%=============================================================================
 -module(object).
 -extends(thing).
--compile(start/1).
+-export([start/3]).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
@@ -27,13 +27,16 @@
 start(Type, Name, Value)->
     case Type of
         potion ->
-            #thing_proc{pid = spawn(fun() -> potionloop(Value) end), name = Name};
+            #thing_proc { pid = spawn(fun() -> potionloop(Value) end)
+                        , name = Name};
 			
         weapon ->
-            #thing_proc{pid = spawn(fun() -> weaponloop(Value) end), name = Name};
+            #thing_proc { pid = spawn(fun() -> weaponloop(Value) end)
+                        , name = Name};
 			
         _Any ->
-            #thing_proc{pid = spawn(fun() -> rockloop() end), name = Name}
+            #thing_proc { pid = spawn(fun() -> rockloop() end)
+                        , name = Name}
 			
     end.
 
