@@ -149,7 +149,7 @@ main(Player) when Player#pc.health > 0 ->
                     end,
                     %% @todo bubble up remaining health to client
                     Status = #event { verb = display_status
-                                    , subject = self()
+                                    , subject = Player_Proc
                                     , object = NewPlayer1#pc.room
                                     , payload = [{health, NewPlayer1#pc.health}
                                                 ,{attack, NewPlayer1#pc.attack}]
@@ -162,7 +162,7 @@ main(Player) when Player#pc.health > 0 ->
                     NewPlayer1 = Player#pc{health = Player#pc.health + HealthRestored},
                     %% @todo bubble up remaining health to client
                     Status = #event { verb = display_status
-                                    , subject = self()
+                                    , subject = Player_Proc
                                     , object = NewPlayer1#pc.room
                                     , payload = [{health, NewPlayer1#pc.health}
                                                 ,{attack, NewPlayer1#pc.attack}]
@@ -175,7 +175,7 @@ main(Player) when Player#pc.health > 0 ->
                     NewPlayer1 = Player#pc{attack = Player#pc.attack + Attackinc},
                     %% @todo bubble up current attack power to client
                     Status = #event { verb = display_status
-                                    , subject = self()
+                                    , subject = Player_Proc
                                     , object = NewPlayer1#pc.room
                                     , payload = [{health, NewPlayer1#pc.health}
                                                 ,{attack, NewPlayer1#pc.attack}]
