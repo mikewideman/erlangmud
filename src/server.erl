@@ -79,7 +79,7 @@ loop(Dungeon, Clients) ->
 			    SourcePid ! {error, "Could not send message"},
 			    loop(Dungeon, Clients);
 			_Any2 -> 
-			    DestPid ! {Message, SourceUsername},
+			    DestPid ! {chat, Message, SourceUsername},
 			    loop(Dungeon, Clients)
 		    end
 	    end;
