@@ -100,7 +100,15 @@ dungeon_loop(Rooms, Connections) ->
 		{error, Any} ->
 			io:format("Dungeon received an error message it didn't understand: ~p~n", [Any]),
 			dungeon_loop(Rooms, Connections);
-		
+	
+		{Username, {look}} ->
+			%server ! {dungeon, ok, input, Username, {Verb, noDirectObject}},
+			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
+			Response = room:look(RoomProc),
+			Event = {look, PlayerProc, RoomProc#room_proc.description, [Response]},
+			server ! {dungeon, ok, Username, Event},
+			dungeon_loop(Rooms, Connections);
+
 		% Propgate input from the client down to the room where the player
 		% is.
 		{Username, {Verb, Object}} ->
