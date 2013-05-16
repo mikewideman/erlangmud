@@ -109,7 +109,7 @@ dungeon_loop(Rooms, Connections) ->
 			{PlayerProc, RoomProc} = dict:fetch(Username, Connections),
 			Input = #input{verb=Verb, subject=PlayerProc, object=Object},
 			Response = room:targetInput(RoomProc, Input),
-			io:format(TargetInput Response: ~p~n", [Response]),
+			io:format("TargetInput Response: ~p~n", [Response]),
 			% TODO: add error handling
 			dungeon_loop(Rooms, Connections);
 		
