@@ -277,7 +277,9 @@ s_targetAction(Room, Action) when is_record(Room, room) andalso Action#action.ob
                 orelse Action#action.object == Room#room.south_door
                 orelse Action#action.object == Room#room.west_door ->
                     %% Door is in room. Tell next room that player is entering.
-                    room:targetAction(Action#action.object, Action);
+                    room:targetAction(Action#action.object, Action),
+                    Room#room{things    = lists:delete(Action#action.subject
+                                        , Room#room.things)};
                 Action#action.object /= Room#room.north_door
                 andalso Action#action.object /= Room#room.east_door
                 andalso Action#action.object /= Room#room.south_door
