@@ -26,6 +26,7 @@
       {'damage', Damage :: pos_integer()}       %% DamageTaken or DamageDone
     | {'heal', Heal :: pos_integer()}           %% HealAmount or HealthRestored
     | {'inc_attack', Attackinc :: pos_integer()}
+    | {'room_content', ContentString :: string()}
     | {atom(), any()}
     .
 %% payload_value() is a type which describes extra data in actions and events.
