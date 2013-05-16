@@ -92,7 +92,7 @@ weaponloop(AttackBonus, Room_Proc) ->
         Event when  is_record(Event, event)
                     andalso Event#event.object#thing_proc.pid == self() ->
             case Event#event.verb of 
-                pick_up ->
+                take ->
                     room:broadcast
                         ( Room_Proc
                         , #event{ verb = inc_attack
