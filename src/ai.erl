@@ -7,7 +7,7 @@
 %%%=============================================================================
 -module(ai).
 -extends(thing).
--compile(export_all).
+-export([start/4]).
 -include("defs.hrl").
 
 %%%%%%%%%%%%%
