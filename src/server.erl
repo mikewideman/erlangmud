@@ -1,10 +1,8 @@
 -module(server).
--export([start/0, start/1, shutdown/0, startLoop/1, loop/2]).
+-export([start/0, shutdown/0, startLoop/1, loop/2]).
 
-start()	->
-	start(self()).
-start(_CallbackPid) ->
-    ServerPid = spawn(server, startLoop, [_CallbackPid]),
+start() ->
+    ServerPid = spawn(server, startLoop, [self()]),
     register(server, ServerPid),
     {ok, ServerPid}.
 
@@ -55,15 +53,6 @@ shutdown() ->
 % where Dungeon is the PID of the dungeon process
 loop(Dungeon, Clients) ->
     receive 
-
-% TODO: Remove this clause
-%
-%	{Source, Anything} -> 
-%	    %Source ! _Anything,
-%	    io:format("Received message: ~p from ~p~n", [Anything, Source]),
-%	    Source ! "Hi there! " ++ Anything,
-%	    loop(State);
-
 	{client, send_message, SourceUsername, DestUsername, Message} ->
 	    SourcePid = getPidForUser(SourceUsername, Clients),
 	    case SourcePid of		
@@ -76,10 +65,14 @@ loop(Dungeon, Clients) ->
 		    DestPid = getPidForUser(DestUsername, Clients),
 		    case DestPid of	
 			username_not_found -> 
+			    io:format("Unable to send message ~p from ~p to ~p~n",
+				     [Message, SourceUsername, DestUsername]),
 			    SourcePid ! {error, "Could not send message"},
 			    loop(Dungeon, Clients);
 			_Any2 -> 
 			    DestPid ! {chat, Message, SourceUsername},
+			    io:format("Sent message ~p from ~p to ~p~n",
+				     [Message, SourceUsername, DestUsername]),
 			    loop(Dungeon, Clients)
 		    end
 	    end;
@@ -148,17 +141,9 @@ loop(Dungeon, Clients) ->
 	    end;
 	
 	{dungeon, ok, disconnected, Username} ->
-	    ClientPid = getPidForUser(Username, Clients),
-	    case ClientPid of		
-		username_not_found -> 
-		    io:format("Unknown user ~p was removed from the dungeon~n",
-			     [Username]),
-		    loop(Dungeon, Clients);
-		_Any ->
-		    io:format("~p was successfully removed from the dungeon~n",
-			     [Username]),
-		    loop(Dungeon, Clients)
-	    end;
+	    io:format("~p was removed from the dungeon~n",
+		      [Username]),
+	    loop(Dungeon, Clients);
 
 	{dungeon, error, disconnected, Username, _Reason} ->
 	    ClientPid = getPidForUser(Username, Clients),
@@ -216,9 +201,14 @@ loop(Dungeon, Clients) ->
 	{'EXIT', Pid, Why} ->
 	    case Pid of
 		Dungeon ->
+		    io:format("Dungeon process died because ~p~n", [Why]),
+		    
 		    % TODO: Try to recover more gracefully
 		    self() ! {shutdown, Why};
 		_Any ->
+		    Username = getUsername(Pid, Clients),
+		    io:format("Client process ~p (~p) died because ~p~n", 
+			      [Username, Pid, Why]),
 		    UpdatedClients = disconnectClient(Pid, Clients),
 		    loop(Dungeon, UpdatedClients)
 	    end;
