@@ -456,7 +456,7 @@ propagateEvent(Room, Event, Excluded) ->
 hrThingToThing(Room, ThingString) ->
 	%normalize the string. get rid of case and whitespace. Maybe do some fuzzy matching someday.
 	N = string:strip(string:to_lower(ThingString)),
-	E = fun({_, _, Name}) -> string:equal(Name, N) end, %an equality function
+	E = fun(Thing) -> string:equal(Thing#thing_proc.name, N) end, %an equality function
 	case lists:filter(E, Room#room.things) of
 		[] -> {error, notInRoom};
 
