@@ -83,7 +83,7 @@ weaponloop(AttackBonus) ->
         Event when  is_record(Event, event)
                     andalso Event#event.object#thing_proc.pid == self() ->
             case Event#event.verb of 
-                pick_up ->
+                take ->
                     thing:receiveEventNotification
                         ( Event#event.object
                         , #event{ verb = inc_attack
