@@ -134,27 +134,54 @@ main(Player) when Player#pc.health > 0 ->
             end;
         Event when is_record(Event, event) ->  
             %% Notified of a game event.
+            Player_Proc = #thing_proc   { pid = self()
+                                        , id = Player#pc.id
+                                        , name = Player#pc.name},
             case Event#event.verb of
                 attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of an attack event.
                     {damage, DamageTaken} = lists:keyfind(damage, 1, Event#event.payload),
                     HealthRemaining = Player#pc.health - DamageTaken,
-                    if  HealthRemaining > 0 ->
+                    NewPlayer1 = if HealthRemaining > 0 ->
                             Player#pc{health = HealthRemaining};
-                        HealthRemaining =< 0 ->
+                    HealthRemaining =< 0 ->
                             Player#pc{health = 0}
-                    end;
+                    end,
                     %% @todo bubble up remaining health to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
                 heal when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a heal event.
                     {heal, HealthRestored} = lists:keyfind(heal, 1, Event#event.payload),
-                    Player#pc{health = Player#pc.health + HealthRestored};
+                    NewPlayer1 = Player#pc{health = Player#pc.health + HealthRestored},
                     %% @todo bubble up remaining health to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
 				inc_attack when Event#event.object#thing_proc.pid == self() ->
                     %% Notified of a inc_attack event.
                     {inc_attack, Attackinc} = lists:keyfind(inc_attack, 1, Event#event.payload),
-                    Player#pc{attack = Player#pc.attack + Attackinc};	
+                    NewPlayer1 = Player#pc{attack = Player#pc.attack + Attackinc},
                     %% @todo bubble up current attack power to client
+                    Status = #event { verb = display_status
+                                    , subject = self()
+                                    , object = NewPlayer1#pc.room
+                                    , payload = [{health, NewPlayer1#pc.health}
+                                                ,{attack, NewPlayer1#pc.attack}]
+                                    },
+                    room:broadcast(Player#pc.room, Status, Player_Proc),
+                    NewPlayer1;
                 enter when Event#event.subject#thing_proc.pid == self() ->
                     %% Notified of an entered event.
                     Player#pc{room = Event#event.object};
@@ -162,7 +189,6 @@ main(Player) when Player#pc.health > 0 ->
                     %% Notified of a died event.
                     %% @todo Any need to change state?
                     Player;
-                    %% @todo bubble up death message to client
                 _Verb ->
                     %% Notified of some other event.
                     Player

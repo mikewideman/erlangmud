@@ -17,6 +17,7 @@
     | 'heal'
     | 'died'
     | 'left'
+    | 'display_status'
     | atom().   %% lets you use any atom you want, the above are just for
                 %% reference. 
 %% verb() is an atom which is recognized as a valid verb in a command sentence
@@ -28,6 +29,8 @@
     | {'heal', Heal :: pos_integer()}           %% HealAmount or HealthRestored
     | {'inc_attack', Attackinc :: pos_integer()}
     | {'room_content', ContentString :: [string()]}
+    | {'health', Health :: non_neg_integer()}
+    | {'attack', Attack :: pos_integer()}
     | {atom(), any()}
     .
 %% payload_value() is a type which describes extra data in actions and events.
