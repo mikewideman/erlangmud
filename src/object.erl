@@ -70,7 +70,7 @@ potionloop(HealAmount, Room_Proc)->
                 drink ->
                     room:broadcast
                         ( Room_Proc
-                        , #event{ verb = drink
+                        , #event{ verb = heal
                                 , subject = Event#event.object
                                 , object = Event#event.subject
                                 , payload = [{heal, HealAmount}]}
