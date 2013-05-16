@@ -70,15 +70,15 @@ end.
 loop2(NPC) ->
 	[H | T] =  NPC#npc.pcs,
 	Players = T ++ H,
-	Hth = NPC#npc.health,
+	% Hth = NPC#npc.health,
 	Subject = #thing_proc{pid = self()},
 	Room = NPC#npc.room,
-	Evernt= #event{verb = die, subject = Subject},
-	receive
+	Evernt= #event{verb = die, subject = Subject},  %% @todo assign object
+	Hth = receive
 	Event when is_record(Event, event) ->
 		case Event#event.verb of 
-			enter -> Players =  T ++ [Event#event.subject] ++ [H];
-			attack -> Hth = NPC#npc.health - element(2, Event#event.payload)
+			enter -> Players =  T ++ [Event#event.subject] ++ [H], NPC#npc.health;
+			attack -> NPC#npc.health - element(2, Event#event.payload)
 		end
 	after 
 		2500 ->
@@ -87,13 +87,14 @@ loop2(NPC) ->
 						, subject = #thing_proc{name=NPC#npc.name, pid=self()}
 						, object = H
 						, payload =[{damage, NPC#npc.attack, NPC}]
-						}, 
-		if 
+						},
+            NPC#npc.health
+    end,
+    if 
 		Hth > 0 ->loop2(NPC#npc{ health = Hth, pcs = Players});
 		Hth =< 0 ->				
 			room:broadcast(Room, Evernt, #thing_proc{pid = self()}) 
-				end
-			end.
+	end.
 
 		
 	
