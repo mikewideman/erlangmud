@@ -319,16 +319,20 @@ s_addThing(Room, Thing) ->
 	NewRoom.
 
 -spec s_leaveGame   ( Room :: #room{}
-                    , Player :: #thing_proc{}
+                    , Thing :: #thing_proc{}
                     ) -> {error, notInRoom} | {ok, #room{}}.
-%% @doc Remove the leaving player from the room. Propogate this as an event.
+%% @doc Remove the leaving thing from the room. Propogate this as an event.
 %% @end
-s_leaveGame(Room, Player)  -> 
-	case lists:keysearch(Player, #room.things, Room#room.things) of 
+s_leaveGame(Room, Thing)  -> 
+	case lists:keyfind(Thing#thing_proc.id, #thing_proc.id, Room#room.things) of 
 		false -> {error, notInRoom};
-		{value, Elem} ->
-            Event = #event{verb = left, subject = Player, object = none},
-			propagateEvent(Room, Event, Player),
+		Elem when is_record(Elem, thing_proc) ->
+            Room_Proc = #room_proc  { pid = self()
+                                    , id = Room#room.id
+                                    , description = Room#room.description
+                                    },
+            Event = #event{verb = left, subject = Thing, object = Room_Proc},
+			propagateEvent(Room, Event, Thing),
 			NewRoom = Room#room{things=lists:delete(Elem, Room#room.things)},
 			{ok, NewRoom}
 	end.

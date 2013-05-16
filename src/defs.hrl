@@ -16,6 +16,7 @@
     | 'drink'
     | 'heal'
     | 'died'
+    | 'left'
     | atom().   %% lets you use any atom you want, the above are just for
                 %% reference. 
 %% verb() is an atom which is recognized as a valid verb in a command sentence
@@ -63,7 +64,7 @@
     }).
 
 -record(event,
-    { verb    :: verb()
+    { verb          :: verb()
     , subject       :: #thing_proc{}
     , object        :: #thing_proc{} | #room_proc{}
     , payload = []  :: list(payload_value())
