@@ -1,5 +1,5 @@
 -module(dungeon).
--export([start/1, merge/1]).
+-export([start/1, merge/1, spawn/2, rooms/0]).
 -include("defs.hrl").
 
 % start
@@ -40,6 +40,16 @@ merge(ConfigFileName) ->
 			{error, Error} ->
 				{fail, Error}
 	end.
+
+rooms() ->
+	dungeon ! {rooms, self()},
+	receive
+		Any -> Any
+	end.
+
+spawn(Thing, Room) ->
+	dungeon ! {spawn, Thing, Room},
+	{ok}.
 
 % dungeon_loop
 %
