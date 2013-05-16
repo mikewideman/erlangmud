@@ -37,7 +37,7 @@ start() ->
 	Success = clientConnection:connect(Server, Uname),
 	case Success of
 	{ok, ConnectPid} ->
-		Outpid = spawn( ui, outputloop, [] ),
+		Outpid = spawn( client, outputloop, [] ),
 		ConnectPid ! {connect_ui, Outpid},
 		inputloop(Outpid, Uname, ConnectPid);
 	_ ->
